@@ -1,13 +1,119 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  phone        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  memberships   Membership[]
+  contributions Contribution[]
+  loans         Loan[]
+}
+
+model Chama {
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  inviteCode        String   @unique
+  contributionAmount Float?
+  frequency         String   @default("monthly")
+  penaltyAmount     Float?
+  createdBy         String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  memberships   Membership[]
+  contributions Contribution[]
+  loans         Loan[]
+  meetings      Meeting[]
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  userId    String
+  chamaId   String
+  role      String   @default("MEMBER")
+  joinedAt  DateTime @default(now())
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chama  Chama  @relation(fields: [chamaId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, chamaId])
+}
+
+model Contribution {
+  id         String   @id @default(cuid())
+  userId     String
+  chamaId    String
+  amount     Float
+  month      DateTime
+  status     String   @default("PENDING")
+  recordedBy String
+  createdAt  DateTime @default(now())
+  
+  user  User  @relation(fields: [userId], references: [id])
+  chama Chama @relation(fields: [chamaId], references: [id])
+}
+
+model Loan {
+  id              String   @id @default(cuid())
+  userId          String
+  chamaId         String
+  amount          Float
+  interestRate    Float    @default(0)
+  repaymentPeriod Int
+  balance         Float
+  status          String   @default("PENDING")
+  approvedBy      String?
+  approvedAt      DateTime?
+  createdAt       DateTime @default(now())
+  
+  user       User            @relation(fields: [userId], references: [id])
+  chama      Chama           @relation(fields: [chamaId], references: [id])
+  repayments LoanRepayment[]
+}
+
+model LoanRepayment {
+  id         String   @id @default(cuid())
+  loanId     String
+  amount     Float
+  date       DateTime @default(now())
+  recordedBy String
+  
+  loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
+}
+
+model Meeting {
+  id              String   @id @default(cuid())
+  chamaId         String
+  title           String
+  date            DateTime
+  agenda          String?
+  attendanceList  String?
+  createdAt       DateTime @default(now())
+  
+  chama Chama @relation(fields: [chamaId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  chamaId   String
+  userId    String
+  action    String
+  entity    String
+  entityId  String
+  oldValues Json?
+  newValues Json?
+  createdAt DateTime @default(now())
 }

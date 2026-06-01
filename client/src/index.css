@@ -20,31 +20,55 @@
 
 @layer base {
   :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
+    /* Base */
+    --background: 0 0% 100%;
+    --foreground: 262 30% 10%;
+
+    /* Purple system */
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 262 30% 96%;
+    --secondary-foreground: 262 30% 10%;
+
+    --muted: 262 20% 96%;
+    --muted-foreground: 262 10% 40%;
+
+    --accent: 262 80% 96%;
+    --accent-foreground: 262 30% 10%;
+
+    /* UI elements */
+    --border: 262 20% 90%;
+    --input: 262 20% 90%;
+    --ring: 262 83% 58%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
     --radius: 0.625rem;
   }
 
   .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-  }
+    --background: 262 30% 6%;
+    --foreground: 0 0% 98%;
 
-  * {
-    @apply border-border outline-ring/50;
-  }
+    --primary: 262 83% 65%;
+    --primary-foreground: 0 0% 100%;
 
-  body {
-    @apply bg-background text-foreground;
-  }
+    --secondary: 262 20% 12%;
+    --secondary-foreground: 0 0% 98%;
 
-  html {
-    font-family: "Inter Variable", sans-serif;
+    --muted: 262 20% 12%;
+    --muted-foreground: 262 10% 70%;
+
+    --accent: 262 20% 12%;
+    --accent-foreground: 0 0% 98%;
+
+    --border: 262 20% 18%;
+    --input: 262 20% 18%;
+    --ring: 262 83% 65%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
   }
 }
