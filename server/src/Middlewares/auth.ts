@@ -21,15 +21,14 @@ export const authenticate = async (
   next: NextFunction
 ) => {
   try {
-    const authHeader = req.headers.authorization;
+    // 👇 READ FROM COOKIE (NOT HEADERS)
+    const token = req.cookies?.token;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    if (!token) {
       return res.status(401).json({
-        error: "Access token required",
+        error: "Authentication required",
       });
     }
-
-    const token = authHeader.split(" ")[1];
 
     const decoded = jwt.verify(token, JWT_SECRET);
 
@@ -46,9 +45,7 @@ export const authenticate = async (
     const payload = decoded as JwtPayload;
 
     const user = await prisma.user.findUnique({
-      where: {
-        id: payload.userId,
-      },
+      where: { id: payload.userId },
       select: {
         id: true,
         name: true,
@@ -64,19 +61,14 @@ export const authenticate = async (
     }
 
     req.user = user;
-
     next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {
-      return res.status(401).json({
-        error: "Token expired",
-      });
+      return res.status(401).json({ error: "Token expired" });
     }
 
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({
-        error: "Invalid token",
-      });
+      return res.status(401).json({ error: "Invalid token" });
     }
 
     console.error("Authentication Error:", error);

@@ -4,9 +4,16 @@ import cookieParser from "cookie-parser";
 import dotenv from 'dotenv';
 import chamaRoutes from './routes/chamaRoutes.ts'
 import authRoutes from './routes/authRoutes.ts'
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 const app = express();
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
+    message: "Too many requests, please try again later."
+})
+
 
 app.use(cors({
     origin: "http://localhost:5173",
@@ -15,6 +22,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(limiter)
 
 // register routes
 app.use("/changa/chamas", chamaRoutes);

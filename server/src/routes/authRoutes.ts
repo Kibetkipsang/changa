@@ -8,5 +8,6 @@ router.post("/register", register)
 router.post("/login", login)
 router.put("/update", authenticate, updateUser)
 router.get("/me", authenticate, getCurrentUser)
+router.post("/logout", authenticate, logout)
 
 export default router;
