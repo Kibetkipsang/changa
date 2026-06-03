@@ -15,13 +15,8 @@ interface JwtPayload {
   email: string;
 }
 
-export const authenticate = async (
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) => {
+export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // 👇 READ FROM COOKIE (NOT HEADERS)
     const token = req.cookies?.token;
 
     if (!token) {

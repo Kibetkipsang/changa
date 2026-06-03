@@ -8,12 +8,6 @@ import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 const app = express();
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 100,
-    message: "Too many requests, please try again later."
-})
-
 
 app.use(cors({
     origin: "http://localhost:5173",
@@ -22,6 +16,11 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 100,
+    message: "Too many requests, please try again later."
+})
 app.use(limiter)
 
 // register routes
