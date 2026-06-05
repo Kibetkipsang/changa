@@ -2,9 +2,12 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from "cookie-parser";
 import dotenv from 'dotenv';
+import rateLimit from 'express-rate-limit';
 import chamaRoutes from './routes/chamaRoutes.ts'
 import authRoutes from './routes/authRoutes.ts'
-import rateLimit from 'express-rate-limit';
+import contributionRoutes from './routes/contributionRoutes.ts'
+import loanRoutes from './routes/loanRoutes.ts'
+import meetingRoutes from './routes/meetingRoutes.ts'
 
 dotenv.config();
 const app = express();
@@ -16,6 +19,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
+
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 100,
@@ -26,6 +30,9 @@ app.use(limiter)
 // register routes
 app.use("/changa/chamas", chamaRoutes);
 app.use("/changa/auth", authRoutes)
+app.use("/changa/contribution", contributionRoutes)
+app.use("changa/loans", loanRoutes)
+app.use("/changa/meeting", meetingRoutes)
 
 
 // health check
