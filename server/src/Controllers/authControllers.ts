@@ -79,62 +79,101 @@ export const register = async (req: AuthRequest, res: Response) => {
 }
 
 export const login = async (req: AuthRequest, res: Response) => {
-    try{
-        const {email, password} = req.body;
-        if(!email || !password){
-            return res.status(400).json({
-                error: "All fields are required."
-            })
-        }
+  try {
+    const { email, password } = req.body;
 
-        // check user
-        const user = await prisma.user.findUnique({
-            where: {email}
-        })
+    if (!email || !password) {
+      return res.status(400).json({
+        error: "All fields are required."
+      });
+    }
 
-        if(!user){
-            return res.status(401).json({
-                error: "Invalid credentials."
-            })
-        }
+    // check user
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
 
-        // check password
-        const isvalidPassword = await bcrypt.compare(password, user.passwordHash)
-        if (!isvalidPassword){
-            return res.sendStatus(401).json({
-                error: "Invalid credentials."
-            })
-        }
+    if (!user) {
+      return res.status(401).json({
+        error: "Invalid credentials."
+      });
+    }
 
-        // generate token
-        const token = jwt.sign(
+    // check password
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isValidPassword) {
+      return res.status(401).json({
+        error: "Invalid credentials."
+      });
+    }
+
+    // generate token
+    const token = jwt.sign(
       { userId: user.id, email: user.email },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: "7d" }
     );
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: "strict",
-            maxAge: 7 * 24 * 60 * 60 * 1000
-        })
-        res.status(200).json({
-            success: true,
-            message: "Login SUccessful.",
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                phone: user.phone,
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    // 🔥 GET USER CHAMAS WITH ACTUAL MEMBER COUNTS
+    const memberships = await prisma.membership.findMany({
+      where: {
+        userId: user.id
+      },
+      include: {
+        chama: {
+          include: {
+            memberships: {
+              select: { id: true } // Get all memberships to count
             }
-        })
-    }catch(error){
-        console.log(error)
-        res.status(500).json({
-            error: "Internal server error."
-        })
-    }
-}
+          }
+        }
+      }
+    });
+
+    const formattedChamas = memberships.map((membership) => {
+      const memberCount = membership.chama.memberships.length;
+      console.log(`Chama: ${membership.chama.name}, Member Count: ${memberCount}`);
+      
+      return {
+        id: membership.chama.id,
+        name: membership.chama.name,
+        description: membership.chama.description,
+        inviteCode: membership.chama.inviteCode,
+        contributionAmount: membership.chama.contributionAmount,
+        frequency: membership.chama.frequency,
+        role: membership.role,
+        memberCount: memberCount // ✅ Now this will be the actual count!
+      };
+    });
+
+    console.log(`User ${user.email} has ${formattedChamas.length} chamas`);
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful.",
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone
+      },
+      chamas: formattedChamas
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      error: "Internal server error."
+    });
+  }
+};
 
 export const getCurrentUser = async(req: AuthRequest, res: Response) => {
     try{

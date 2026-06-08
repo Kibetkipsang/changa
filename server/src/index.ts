@@ -14,7 +14,9 @@ const app = express();
 
 app.use(cors({
     origin: "http://localhost:5173",
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json());
@@ -31,7 +33,7 @@ app.use(limiter)
 app.use("/changa/chamas", chamaRoutes);
 app.use("/changa/auth", authRoutes)
 app.use("/changa/contribution", contributionRoutes)
-app.use("changa/loans", loanRoutes)
+app.use("/changa/loans", loanRoutes)
 app.use("/changa/meeting", meetingRoutes)
 
 
