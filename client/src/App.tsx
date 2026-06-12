@@ -1,17 +1,17 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { Toaster } from 'sonner';
-import { ProtectedRoute } from './components/protectedRoute';
-import { Auth } from './pages/Auth';
-import { Dashboard } from './pages/Dashboard';
-import { MyChamas } from './pages/MyChamas';
-import { CreateChama } from './pages/CreateChama';
-import { JoinChama } from './pages/JoinChama';
-import { Contributions } from './pages/Contributions';
-import { Loans } from './pages/Loans';
-import { Meetings } from './pages/Meetings';
-import { Members } from './pages/Members';
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { Toaster } from "sonner";
+import { ProtectedRoute } from "./components/protectedRoute";
+import { Auth } from "./pages/Auth";
+import { Dashboard } from "./pages/Dashboard";
+import { MyChamas } from "./pages/MyChamas";
+import { CreateChama } from "./pages/CreateChama";
+import { JoinChama } from "./pages/JoinChama";
+import { Contributions } from "./pages/Contributions";
+import { Loans } from "./pages/Loans";
+import { Meetings } from "./pages/Meetings";
+import { Members } from "./pages/Members";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,7 +32,7 @@ function App() {
           <Route path="/" element={<Auth />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/register" element={<Navigate to="/" replace />} />
-          
+
           {/* Protected routes */}
           <Route
             path="/my-chamas"
@@ -98,7 +98,7 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
+
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface Chama {
   id: string;
@@ -97,7 +97,7 @@ export const useChamaStore = create<ChamaState>()(
       updateChama: (chamaId, updates) =>
         set((state) => ({
           userChamas: state.userChamas.map((c) =>
-            c.id === chamaId ? { ...c, ...updates } : c
+            c.id === chamaId ? { ...c, ...updates } : c,
           ),
           currentChama:
             state.currentChama?.id === chamaId
@@ -122,12 +122,12 @@ export const useChamaStore = create<ChamaState>()(
       getCurrentChamaId: () => get().currentChama?.id || null,
     }),
     {
-      name: 'changa-chama-storage',
+      name: "changa-chama-storage",
 
       partialize: (state) => ({
         currentChama: state.currentChama,
         userChamas: state.userChamas,
       }),
-    }
-  )
+    },
+  ),
 );

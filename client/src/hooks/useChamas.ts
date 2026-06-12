@@ -1,8 +1,8 @@
 // hooks/useChamas.ts
-import { useEffect, useState } from 'react';
-import { useChamaStore } from '../stores/chamaStore';
-import { useAuthStore } from '../stores/authStore';
-import { chamaService } from '../services/chamaServices';
+import { useEffect, useState } from "react";
+import { useChamaStore } from "../stores/chamaStore";
+import { useAuthStore } from "../stores/authStore";
+import { chamaService } from "../services/chamaServices";
 
 export const useChamas = () => {
   const [loading, setLoading] = useState(true);
@@ -21,11 +21,11 @@ export const useChamas = () => {
         setLoading(true);
         setError(null);
         const chamas = await chamaService.getMyChamas();
-        console.log('Setting chamas in store:', chamas);
+        console.log("Setting chamas in store:", chamas);
         setUserChamas(chamas);
       } catch (err) {
-        console.error('Failed to load chamas:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load chamas');
+        console.error("Failed to load chamas:", err);
+        setError(err instanceof Error ? err.message : "Failed to load chamas");
       } finally {
         setLoading(false);
       }

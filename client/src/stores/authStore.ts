@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface User {
   id: string;
@@ -31,22 +31,22 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         // Call logout endpoint to clear httpOnly cookie
         try {
-          await fetch('http://localhost:5000/changa/auth/logout', {
-            method: 'POST',
-            credentials: 'include',
+          await fetch("http://localhost:5000/changa/auth/logout", {
+            method: "POST",
+            credentials: "include",
           });
         } catch (error) {
-          console.error('Logout error:', error);
+          console.error("Logout error:", error);
         }
-        
+
         // Clear local storage
         set({ user: null, isAuthenticated: false });
-        localStorage.removeItem('changa-auth-storage');
-        localStorage.removeItem('changa-chama-storage');
+        localStorage.removeItem("changa-auth-storage");
+        localStorage.removeItem("changa-chama-storage");
       },
     }),
     {
-      name: 'changa-auth-storage',
-    }
-  )
+      name: "changa-auth-storage",
+    },
+  ),
 );

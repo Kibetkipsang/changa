@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
-import { Layout } from '../components/Layout';
-import { useChamaStore } from '../stores/chamaStore';
-import { api } from '../lib/api';
-import { 
-  Plus, 
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import { Layout } from "../components/Layout";
+import { useChamaStore } from "../stores/chamaStore";
+import { api } from "../lib/api";
+import {
+  Plus,
   Calendar as CalendarIcon,
   MapPin,
   Users,
@@ -19,8 +19,8 @@ import {
   Edit,
   Loader2,
   Video,
-  AlertCircle
-} from 'lucide-react';
+  AlertCircle,
+} from "lucide-react";
 
 interface Meeting {
   id: string;
@@ -31,7 +31,7 @@ interface Meeting {
   type: string;
   agenda: string;
   minutes: string;
-  status: 'SCHEDULED' | 'ONGOING' | 'COMPLETED' | 'CANCELLED';
+  status: "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
   attendanceList: string;
   attendanceCount: number;
   allMembers?: { id: string; name: string }[];
@@ -45,14 +45,14 @@ export function Meetings() {
   const [showAttendance, setShowAttendance] = useState<Meeting | null>(null);
   const [showMinutes, setShowMinutes] = useState<Meeting | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState("all");
 
   // Fetch meetings
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['meetings', currentChama?.id, statusFilter],
+    queryKey: ["meetings", currentChama?.id, statusFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
-      if (statusFilter !== 'all') params.append('status', statusFilter);
+      if (statusFilter !== "all") params.append("status", statusFilter);
       const response = await api.get(`/meetings/${currentChama?.id}?${params}`);
       return response.data;
     },
@@ -61,7 +61,7 @@ export function Meetings() {
 
   // Fetch members for attendance
   const { data: chamaData } = useQuery({
-    queryKey: ['chama-members-attendance', currentChama?.id],
+    queryKey: ["chama-members-attendance", currentChama?.id],
     queryFn: async () => {
       const response = await api.get(`/chamas/${currentChama?.id}`);
       return response.data;
@@ -76,25 +76,32 @@ export function Meetings() {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meetings', currentChama?.id] });
-      toast.success('Meeting scheduled successfully');
+      queryClient.invalidateQueries({
+        queryKey: ["meetings", currentChama?.id],
+      });
+      toast.success("Meeting scheduled successfully");
       setShowForm(false);
       refetch();
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error || 'Failed to schedule meeting');
+      toast.error(error.response?.data?.error || "Failed to schedule meeting");
     },
   });
 
   // Update meeting mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
-      const response = await api.put(`/meetings/${currentChama?.id}/${id}`, data);
+      const response = await api.put(
+        `/meetings/${currentChama?.id}/${id}`,
+        data,
+      );
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meetings', currentChama?.id] });
-      toast.success('Meeting updated successfully');
+      queryClient.invalidateQueries({
+        queryKey: ["meetings", currentChama?.id],
+      });
+      toast.success("Meeting updated successfully");
       setEditingMeeting(null);
       refetch();
     },
@@ -103,25 +110,40 @@ export function Meetings() {
   // Cancel meeting mutation
   const cancelMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.patch(`/meetings/cancel/${currentChama?.id}/${id}`);
+      const response = await api.patch(
+        `/meetings/cancel/${currentChama?.id}/${id}`,
+      );
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meetings', currentChama?.id] });
-      toast.success('Meeting cancelled');
+      queryClient.invalidateQueries({
+        queryKey: ["meetings", currentChama?.id],
+      });
+      toast.success("Meeting cancelled");
       refetch();
     },
   });
 
   // Mark attendance mutation
   const attendanceMutation = useMutation({
-    mutationFn: async ({ id, attendeeIds }: { id: string; attendeeIds: string[] }) => {
-      const response = await api.patch(`/meetings/attendance/${currentChama?.id}/${id}`, { attendeeIds });
+    mutationFn: async ({
+      id,
+      attendeeIds,
+    }: {
+      id: string;
+      attendeeIds: string[];
+    }) => {
+      const response = await api.patch(
+        `/meetings/attendance/${currentChama?.id}/${id}`,
+        { attendeeIds },
+      );
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meetings', currentChama?.id] });
-      toast.success('Attendance marked successfully');
+      queryClient.invalidateQueries({
+        queryKey: ["meetings", currentChama?.id],
+      });
+      toast.success("Attendance marked successfully");
       setShowAttendance(null);
       refetch();
     },
@@ -130,12 +152,17 @@ export function Meetings() {
   // Add minutes mutation
   const minutesMutation = useMutation({
     mutationFn: async ({ id, minutes }: { id: string; minutes: string }) => {
-      const response = await api.patch(`/meetings/minutes/${currentChama?.id}/${id}`, { minutes });
+      const response = await api.patch(
+        `/meetings/minutes/${currentChama?.id}/${id}`,
+        { minutes },
+      );
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['meetings', currentChama?.id] });
-      toast.success('Meeting minutes added');
+      queryClient.invalidateQueries({
+        queryKey: ["meetings", currentChama?.id],
+      });
+      toast.success("Meeting minutes added");
       setShowMinutes(null);
       refetch();
     },
@@ -145,12 +172,12 @@ export function Meetings() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     createMutation.mutate({
-      title: formData.get('title'),
-      description: formData.get('description'),
-      date: formData.get('date'),
-      location: formData.get('location'),
-      type: formData.get('type'),
-      agenda: formData.get('agenda'),
+      title: formData.get("title"),
+      description: formData.get("description"),
+      date: formData.get("date"),
+      location: formData.get("location"),
+      type: formData.get("type"),
+      agenda: formData.get("agenda"),
     });
   };
 
@@ -161,29 +188,49 @@ export function Meetings() {
     updateMutation.mutate({
       id: editingMeeting.id,
       data: {
-        title: formData.get('title'),
-        description: formData.get('description'),
-        date: formData.get('date'),
-        location: formData.get('location'),
-        type: formData.get('type'),
-        agenda: formData.get('agenda'),
-        status: formData.get('status'),
+        title: formData.get("title"),
+        description: formData.get("description"),
+        date: formData.get("date"),
+        location: formData.get("location"),
+        type: formData.get("type"),
+        agenda: formData.get("agenda"),
+        status: formData.get("status"),
       },
     });
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'SCHEDULED':
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><Clock className="w-3 h-3" /> Scheduled</span>;
-      case 'ONGOING':
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><AlertCircle className="w-3 h-3" /> Ongoing</span>;
-      case 'COMPLETED':
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"><CheckCircle className="w-3 h-3" /> Completed</span>;
-      case 'CANCELLED':
-        return <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle className="w-3 h-3" /> Cancelled</span>;
+      case "SCHEDULED":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <Clock className="w-3 h-3" /> Scheduled
+          </span>
+        );
+      case "ONGOING":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <AlertCircle className="w-3 h-3" /> Ongoing
+          </span>
+        );
+      case "COMPLETED":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            <CheckCircle className="w-3 h-3" /> Completed
+          </span>
+        );
+      case "CANCELLED":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <XCircle className="w-3 h-3" /> Cancelled
+          </span>
+        );
       default:
-        return <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">{status}</span>;
+        return (
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -191,13 +238,18 @@ export function Meetings() {
   const summary = data?.summary || {};
   const members = chamaData?.chama?.members || [];
   const userRole = currentChama?.role;
-  const canManage = userRole === 'OWNER' || userRole === 'SECRETARY' || userRole === 'TREASURER';
+  const canManage =
+    userRole === "OWNER" ||
+    userRole === "SECRETARY" ||
+    userRole === "TREASURER";
 
   if (!currentChama) {
     return (
       <Layout>
         <div className="text-center py-16 bg-white rounded-xl shadow-sm p-8">
-          <p className="text-gray-600">Please select a chama to manage meetings.</p>
+          <p className="text-gray-600">
+            Please select a chama to manage meetings.
+          </p>
         </div>
       </Layout>
     );
@@ -210,7 +262,9 @@ export function Meetings() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Meetings</h1>
-            <p className="text-gray-600 mt-1">Schedule and manage meetings for {currentChama.name}</p>
+            <p className="text-gray-600 mt-1">
+              Schedule and manage meetings for {currentChama.name}
+            </p>
           </div>
           {canManage && (
             <button
@@ -227,20 +281,35 @@ export function Meetings() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
             <p className="text-sm text-gray-500">Total Meetings</p>
-            <p className="text-2xl font-bold text-gray-900">{summary.total || 0}</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {summary.total || 0}
+            </p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
             <p className="text-sm text-gray-500">Upcoming</p>
-            <p className="text-2xl font-bold text-blue-600">{summary.upcoming || 0}</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {summary.upcoming || 0}
+            </p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
             <p className="text-sm text-gray-500">Completed</p>
-            <p className="text-2xl font-bold text-green-600">{summary.past || 0}</p>
+            <p className="text-2xl font-bold text-green-600">
+              {summary.past || 0}
+            </p>
           </div>
           <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
             <p className="text-sm text-gray-500">Average Attendance</p>
             <p className="text-2xl font-bold text-gray-900">
-              {meetings.length ? Math.round(meetings.reduce((sum: number, m: Meeting) => sum + (m.attendanceCount || 0), 0) / meetings.length) : 0}%
+              {meetings.length
+                ? Math.round(
+                    meetings.reduce(
+                      (sum: number, m: Meeting) =>
+                        sum + (m.attendanceCount || 0),
+                      0,
+                    ) / meetings.length,
+                  )
+                : 0}
+              %
             </p>
           </div>
         </div>
@@ -283,20 +352,32 @@ export function Meetings() {
             </div>
           ) : (
             meetings.map((meeting: Meeting) => (
-              <div key={meeting.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+              <div
+                key={meeting.id}
+                className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow"
+              >
                 <div className="p-5">
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900">{meeting.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{meeting.type}</p>
+                      <h3 className="font-semibold text-gray-900">
+                        {meeting.title}
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {meeting.type}
+                      </p>
                     </div>
                     {getStatusBadge(meeting.status)}
                   </div>
-                  
+
                   <div className="space-y-2 mt-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <CalendarIcon className="w-4 h-4" />
-                      <span>{format(new Date(meeting.date), 'EEEE, MMMM d, yyyy h:mm a')}</span>
+                      <span>
+                        {format(
+                          new Date(meeting.date),
+                          "EEEE, MMMM d, yyyy h:mm a",
+                        )}
+                      </span>
                     </div>
                     {meeting.location && (
                       <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -304,12 +385,13 @@ export function Meetings() {
                         <span>{meeting.location}</span>
                       </div>
                     )}
-                    {meeting.attendanceCount !== undefined && meeting.status === 'COMPLETED' && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Users className="w-4 h-4" />
-                        <span>{meeting.attendanceCount} attendees</span>
-                      </div>
-                    )}
+                    {meeting.attendanceCount !== undefined &&
+                      meeting.status === "COMPLETED" && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Users className="w-4 h-4" />
+                          <span>{meeting.attendanceCount} attendees</span>
+                        </div>
+                      )}
                   </div>
 
                   <div className="flex gap-2 mt-5 pt-4 border-t">
@@ -320,7 +402,7 @@ export function Meetings() {
                       <Eye className="w-4 h-4" />
                       View
                     </button>
-                    {canManage && meeting.status === 'SCHEDULED' && (
+                    {canManage && meeting.status === "SCHEDULED" && (
                       <>
                         <button
                           onClick={() => setShowAttendance(meeting)}
@@ -337,7 +419,8 @@ export function Meetings() {
                         </button>
                         <button
                           onClick={() => {
-                            if (confirm('Cancel this meeting?')) cancelMutation.mutate(meeting.id);
+                            if (confirm("Cancel this meeting?"))
+                              cancelMutation.mutate(meeting.id);
                           }}
                           className="p-1.5 border rounded-lg hover:bg-red-50 transition-colors"
                         >
@@ -345,15 +428,17 @@ export function Meetings() {
                         </button>
                       </>
                     )}
-                    {canManage && meeting.status === 'COMPLETED' && !meeting.minutes && (
-                      <button
-                        onClick={() => setShowMinutes(meeting)}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-sm border rounded-lg hover:bg-blue-50 transition-colors"
-                      >
-                        <FileText className="w-4 h-4" />
-                        Add Minutes
-                      </button>
-                    )}
+                    {canManage &&
+                      meeting.status === "COMPLETED" &&
+                      !meeting.minutes && (
+                        <button
+                          onClick={() => setShowMinutes(meeting)}
+                          className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 text-sm border rounded-lg hover:bg-blue-50 transition-colors"
+                        >
+                          <FileText className="w-4 h-4" />
+                          Add Minutes
+                        </button>
+                      )}
                   </div>
                 </div>
               </div>
@@ -367,11 +452,16 @@ export function Meetings() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-xl max-w-lg w-full p-6">
             <h2 className="text-xl font-bold mb-4">
-              {editingMeeting ? 'Edit Meeting' : 'Schedule Meeting'}
+              {editingMeeting ? "Edit Meeting" : "Schedule Meeting"}
             </h2>
-            <form onSubmit={editingMeeting ? handleUpdate : handleSubmit} className="space-y-4">
+            <form
+              onSubmit={editingMeeting ? handleUpdate : handleSubmit}
+              className="space-y-4"
+            >
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Title *
+                </label>
                 <input
                   type="text"
                   name="title"
@@ -381,7 +471,9 @@ export function Meetings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
                 <textarea
                   name="description"
                   rows={2}
@@ -390,17 +482,28 @@ export function Meetings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date & Time *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date & Time *
+                </label>
                 <input
                   type="datetime-local"
                   name="date"
                   required
-                  defaultValue={editingMeeting?.date ? format(new Date(editingMeeting.date), "yyyy-MM-dd'T'HH:mm") : ''}
+                  defaultValue={
+                    editingMeeting?.date
+                      ? format(
+                          new Date(editingMeeting.date),
+                          "yyyy-MM-dd'T'HH:mm",
+                        )
+                      : ""
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Location
+                </label>
                 <input
                   type="text"
                   name="location"
@@ -410,10 +513,12 @@ export function Meetings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Meeting Type</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Meeting Type
+                </label>
                 <select
                   name="type"
-                  defaultValue={editingMeeting?.type || 'REGULAR'}
+                  defaultValue={editingMeeting?.type || "REGULAR"}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
                 >
                   <option value="REGULAR">Regular Meeting</option>
@@ -423,7 +528,9 @@ export function Meetings() {
               </div>
               {editingMeeting && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
                   <select
                     name="status"
                     defaultValue={editingMeeting.status}
@@ -437,7 +544,9 @@ export function Meetings() {
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Agenda</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Agenda
+                </label>
                 <textarea
                   name="agenda"
                   rows={4}
@@ -449,14 +558,23 @@ export function Meetings() {
               <div className="flex gap-3 pt-4">
                 <button
                   type="submit"
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={
+                    createMutation.isPending || updateMutation.isPending
+                  }
                   className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
                 >
-                  {(createMutation.isPending || updateMutation.isPending) ? 'Saving...' : (editingMeeting ? 'Update' : 'Schedule')}
+                  {createMutation.isPending || updateMutation.isPending
+                    ? "Saving..."
+                    : editingMeeting
+                      ? "Update"
+                      : "Schedule"}
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setShowForm(false); setEditingMeeting(null); }}
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingMeeting(null);
+                  }}
                   className="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
@@ -472,21 +590,37 @@ export function Meetings() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <h2 className="text-xl font-bold mb-2">Mark Attendance</h2>
-            <p className="text-sm text-gray-600 mb-4">{showAttendance.title} · {format(new Date(showAttendance.date), 'MMMM d, yyyy')}</p>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              const attendeeIds = Array.from(formData.getAll('attendees')) as string[];
-              attendanceMutation.mutate({ id: showAttendance.id, attendeeIds });
-            }} className="space-y-4">
+            <p className="text-sm text-gray-600 mb-4">
+              {showAttendance.title} ·{" "}
+              {format(new Date(showAttendance.date), "MMMM d, yyyy")}
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const attendeeIds = Array.from(
+                  formData.getAll("attendees"),
+                ) as string[];
+                attendanceMutation.mutate({
+                  id: showAttendance.id,
+                  attendeeIds,
+                });
+              }}
+              className="space-y-4"
+            >
               <div className="max-h-96 overflow-y-auto border rounded-lg p-3">
                 {members.map((member: any) => (
-                  <label key={member.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                  <label
+                    key={member.id}
+                    className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer"
+                  >
                     <input
                       type="checkbox"
                       name="attendees"
                       value={member.id}
-                      defaultChecked={showAttendance.attendanceList?.includes(member.id)}
+                      defaultChecked={showAttendance.attendanceList?.includes(
+                        member.id,
+                      )}
                       className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
                     />
                     <div>
@@ -502,7 +636,9 @@ export function Meetings() {
                   disabled={attendanceMutation.isPending}
                   className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
                 >
-                  {attendanceMutation.isPending ? 'Saving...' : 'Save Attendance'}
+                  {attendanceMutation.isPending
+                    ? "Saving..."
+                    : "Save Attendance"}
                 </button>
                 <button
                   type="button"
@@ -522,14 +658,25 @@ export function Meetings() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-lg w-full p-6">
             <h2 className="text-xl font-bold mb-2">Add Meeting Minutes</h2>
-            <p className="text-sm text-gray-600 mb-4">{showMinutes.title} · {format(new Date(showMinutes.date), 'MMMM d, yyyy')}</p>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              minutesMutation.mutate({ id: showMinutes.id, minutes: formData.get('minutes') as string });
-            }} className="space-y-4">
+            <p className="text-sm text-gray-600 mb-4">
+              {showMinutes.title} ·{" "}
+              {format(new Date(showMinutes.date), "MMMM d, yyyy")}
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                minutesMutation.mutate({
+                  id: showMinutes.id,
+                  minutes: formData.get("minutes") as string,
+                });
+              }}
+              className="space-y-4"
+            >
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Minutes *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Minutes *
+                </label>
                 <textarea
                   name="minutes"
                   required
@@ -544,7 +691,7 @@ export function Meetings() {
                   disabled={minutesMutation.isPending}
                   className="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
                 >
-                  {minutesMutation.isPending ? 'Saving...' : 'Save Minutes'}
+                  {minutesMutation.isPending ? "Saving..." : "Save Minutes"}
                 </button>
                 <button
                   type="button"
@@ -572,13 +719,18 @@ export function Meetings() {
                 <XCircle className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-gray-500">Date & Time</p>
-                    <p className="text-sm">{format(new Date(selectedMeeting.date), 'EEEE, MMMM d, yyyy h:mm a')}</p>
+                    <p className="text-sm">
+                      {format(
+                        new Date(selectedMeeting.date),
+                        "EEEE, MMMM d, yyyy h:mm a",
+                      )}
+                    </p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Type</p>
@@ -586,7 +738,9 @@ export function Meetings() {
                   </div>
                   <div className="col-span-2">
                     <p className="text-xs text-gray-500">Location</p>
-                    <p className="text-sm">{selectedMeeting.location || 'Not specified'}</p>
+                    <p className="text-sm">
+                      {selectedMeeting.location || "Not specified"}
+                    </p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-xs text-gray-500">Status</p>
@@ -613,15 +767,20 @@ export function Meetings() {
                 </div>
               )}
 
-              {selectedMeeting.attendanceCount !== undefined && selectedMeeting.attendanceCount > 0 && (
-                <div>
-                  <h3 className="font-semibold mb-2">Attendance ({selectedMeeting.attendanceCount})</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    {/* Would need to fetch attendee names from API */}
-                    <p className="text-sm text-gray-600">{selectedMeeting.attendanceCount} members attended</p>
+              {selectedMeeting.attendanceCount !== undefined &&
+                selectedMeeting.attendanceCount > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-2">
+                      Attendance ({selectedMeeting.attendanceCount})
+                    </h3>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      {/* Would need to fetch attendee names from API */}
+                      <p className="text-sm text-gray-600">
+                        {selectedMeeting.attendanceCount} members attended
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               <div className="pt-4">
                 <button

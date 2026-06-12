@@ -6,6 +6,6 @@ export interface AuthUser {
   email: string;
   phone?: string | null;
 }
-export interface AuthRequest extends Request{
-    user? : AuthUser;
+export interface AuthRequest extends Request {
+  user?: AuthUser;
 }

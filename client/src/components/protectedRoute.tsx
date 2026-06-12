@@ -1,21 +1,22 @@
-import { Navigate } from 'react-router-dom';
-import { useAuthStore } from '../stores/authStore';
-import { useEffect, useState } from 'react';
-import { api } from '../lib/api';
+import { Navigate } from "react-router-dom";
+import { useAuthStore } from "../stores/authStore";
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, setAuthenticated, setUser, setLoading, isLoading } = useAuthStore();
+  const { isAuthenticated, setAuthenticated, setUser, setLoading, isLoading } =
+    useAuthStore();
   const [verifying, setVerifying] = useState(true);
 
   useEffect(() => {
     const verifyAuth = async () => {
       try {
         // This request sends the httpOnly cookie automatically
-        const response = await api.get('/auth/me');
+        const response = await api.get("/auth/me");
         if (response.data.user) {
           setUser(response.data.user);
           setAuthenticated(true);
@@ -24,7 +25,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
           setUser(null);
         }
       } catch (error) {
-        console.error('Auth verification failed:', error);
+        console.error("Auth verification failed:", error);
         setAuthenticated(false);
         setUser(null);
       } finally {

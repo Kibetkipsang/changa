@@ -1,17 +1,19 @@
-import { Response } from 'express';
-import {prisma} from "../lib/prisma.ts"
-import { AuthRequest } from '../types/express.js';
-
+import { Response } from "express";
+import { prisma } from "../lib/prisma.ts";
+import { AuthRequest } from "../types/express.js";
 
 // Record a new contribution (Treasurer/OWNER only)
-export const recordContribution = async (req: AuthRequest, res: Response): Promise<void> => {
+export const recordContribution = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { chamaId } = req.params as { chamaId: string };
     const { userId, amount, month, paymentMethod, notes } = req.body;
     const recordedBy = req.user?.id;
 
     if (!recordedBy) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -25,14 +27,21 @@ export const recordContribution = async (req: AuthRequest, res: Response): Promi
       },
     });
 
-    if (!membership || (membership.role !== 'TREASURER' && membership.role !== 'OWNER')) {
-      res.status(403).json({ error: 'Only treasurer or owner can record contributions' });
+    if (
+      !membership ||
+      (membership.role !== "TREASURER" && membership.role !== "OWNER")
+    ) {
+      res
+        .status(403)
+        .json({ error: "Only treasurer or owner can record contributions" });
       return;
     }
 
     // Validate input
     if (!userId || !amount || !month) {
-      res.status(400).json({ error: 'Member ID, amount, and month are required' });
+      res
+        .status(400)
+        .json({ error: "Member ID, amount, and month are required" });
       return;
     }
 
@@ -46,13 +55,13 @@ export const recordContribution = async (req: AuthRequest, res: Response): Promi
       },
       include: {
         user: {
-          select: { name: true, email: true }
-        }
-      }
+          select: { name: true, email: true },
+        },
+      },
     });
 
     if (!memberExists) {
-      res.status(404).json({ error: 'Member not found in this chama' });
+      res.status(404).json({ error: "Member not found in this chama" });
       return;
     }
 
@@ -76,17 +85,19 @@ export const recordContribution = async (req: AuthRequest, res: Response): Promi
     });
 
     if (existing) {
-      res.status(400).json({ error: 'Contribution for this month already exists' });
+      res
+        .status(400)
+        .json({ error: "Contribution for this month already exists" });
       return;
     }
 
     // Determine status
     const expectedAmount = chama?.contributionAmount || amount;
-    let status = 'PENDING';
+    let status = "PENDING";
     if (amount >= expectedAmount) {
-      status = 'PAID';
+      status = "PAID";
     } else if (amount > 0 && amount < expectedAmount) {
-      status = 'PARTIAL';
+      status = "PARTIAL";
     }
 
     // Create contribution
@@ -98,7 +109,7 @@ export const recordContribution = async (req: AuthRequest, res: Response): Promi
           amount: parseFloat(amount),
           month: monthDate,
           status,
-          paymentMethod: paymentMethod || 'CASH',
+          paymentMethod: paymentMethod || "CASH",
           notes,
           recordedBy,
         },
@@ -119,8 +130,8 @@ export const recordContribution = async (req: AuthRequest, res: Response): Promi
         data: {
           chamaId,
           userId: recordedBy,
-          action: 'RECORD_CONTRIBUTION',
-          entity: 'Contribution',
+          action: "RECORD_CONTRIBUTION",
+          entity: "Contribution",
           entityId: newContribution.id,
           newValues: {
             userId,
@@ -137,26 +148,29 @@ export const recordContribution = async (req: AuthRequest, res: Response): Promi
 
     res.status(201).json({
       success: true,
-      message: 'Contribution recorded successfully',
+      message: "Contribution recorded successfully",
       contribution,
     });
   } catch (error) {
-    console.error('Record contribution error:', error);
-    res.status(500).json({ error: 'Failed to record contribution' });
+    console.error("Record contribution error:", error);
+    res.status(500).json({ error: "Failed to record contribution" });
   }
 };
 
 // ==================== READ ====================
 
 // Get all contributions for a chama
-export const getContributions = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getContributions = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { chamaId } = req.params as { chamaId: string };
     const { month, userId, status, fromDate, toDate } = req.query;
     const currentUserId = req.user?.id;
 
     if (!currentUserId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -171,7 +185,7 @@ export const getContributions = async (req: AuthRequest, res: Response): Promise
     });
 
     if (!membership) {
-      res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: "Access denied" });
       return;
     }
 
@@ -184,9 +198,9 @@ export const getContributions = async (req: AuthRequest, res: Response): Promise
       filters.month = monthDate;
     }
 
-    if (userId && membership.role !== 'MEMBER') {
+    if (userId && membership.role !== "MEMBER") {
       filters.userId = userId as string;
-    } else if (membership.role === 'MEMBER') {
+    } else if (membership.role === "MEMBER") {
       filters.userId = currentUserId;
     }
 
@@ -214,7 +228,7 @@ export const getContributions = async (req: AuthRequest, res: Response): Promise
         },
       },
       orderBy: {
-        month: 'desc',
+        month: "desc",
       },
     });
 
@@ -222,7 +236,7 @@ export const getContributions = async (req: AuthRequest, res: Response): Promise
     const summary = await prisma.contribution.aggregate({
       where: {
         chamaId,
-        ...(membership.role === 'MEMBER' ? { userId: currentUserId } : {}),
+        ...(membership.role === "MEMBER" ? { userId: currentUserId } : {}),
       },
       _sum: {
         amount: true,
@@ -235,10 +249,10 @@ export const getContributions = async (req: AuthRequest, res: Response): Promise
 
     // Status breakdown
     const statusBreakdown = await prisma.contribution.groupBy({
-      by: ['status'],
+      by: ["status"],
       where: {
         chamaId,
-        ...(membership.role === 'MEMBER' ? { userId: currentUserId } : {}),
+        ...(membership.role === "MEMBER" ? { userId: currentUserId } : {}),
       },
       _count: {
         status: true,
@@ -260,19 +274,25 @@ export const getContributions = async (req: AuthRequest, res: Response): Promise
       userRole: membership.role,
     });
   } catch (error) {
-    console.error('Get contributions error:', error);
-    res.status(500).json({ error: 'Failed to fetch contributions' });
+    console.error("Get contributions error:", error);
+    res.status(500).json({ error: "Failed to fetch contributions" });
   }
 };
 
 // Get single contribution by ID
-export const getContributionById = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getContributionById = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId, contributionId } = req.params as {chamaId: string, contributionId: string}
+    const { chamaId, contributionId } = req.params as {
+      chamaId: string;
+      contributionId: string;
+    };
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -287,7 +307,7 @@ export const getContributionById = async (req: AuthRequest, res: Response): Prom
     });
 
     if (!membership) {
-      res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: "Access denied" });
       return;
     }
 
@@ -316,13 +336,13 @@ export const getContributionById = async (req: AuthRequest, res: Response): Prom
     });
 
     if (!contribution) {
-      res.status(404).json({ error: 'Contribution not found' });
+      res.status(404).json({ error: "Contribution not found" });
       return;
     }
 
     // Members can only see their own
-    if (membership.role === 'MEMBER' && contribution.userId !== userId) {
-      res.status(403).json({ error: 'Access denied' });
+    if (membership.role === "MEMBER" && contribution.userId !== userId) {
+      res.status(403).json({ error: "Access denied" });
       return;
     }
 
@@ -331,19 +351,25 @@ export const getContributionById = async (req: AuthRequest, res: Response): Prom
       contribution,
     });
   } catch (error) {
-    console.error('Get contribution error:', error);
-    res.status(500).json({ error: 'Failed to fetch contribution' });
+    console.error("Get contribution error:", error);
+    res.status(500).json({ error: "Failed to fetch contribution" });
   }
 };
 
 // Get member's contribution history
-export const getMemberContributions = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getMemberContributions = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId, memberId } = req.params as {chamaId: string, memberId: string}
+    const { chamaId, memberId } = req.params as {
+      chamaId: string;
+      memberId: string;
+    };
     const currentUserId = req.user?.id;
 
     if (!currentUserId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -358,18 +384,18 @@ export const getMemberContributions = async (req: AuthRequest, res: Response): P
     });
 
     if (!membership) {
-      res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: "Access denied" });
       return;
     }
 
     // Determine which member to show
     let targetUserId = memberId;
-    if (membership.role === 'MEMBER') {
+    if (membership.role === "MEMBER") {
       targetUserId = currentUserId;
     }
 
     if (!targetUserId) {
-      res.status(400).json({ error: 'Member ID required' });
+      res.status(400).json({ error: "Member ID required" });
       return;
     }
 
@@ -385,7 +411,7 @@ export const getMemberContributions = async (req: AuthRequest, res: Response): P
     });
 
     if (!member) {
-      res.status(404).json({ error: 'Member not found' });
+      res.status(404).json({ error: "Member not found" });
       return;
     }
 
@@ -396,7 +422,7 @@ export const getMemberContributions = async (req: AuthRequest, res: Response): P
         chamaId,
       },
       orderBy: {
-        month: 'desc',
+        month: "desc",
       },
     });
 
@@ -409,8 +435,12 @@ export const getMemberContributions = async (req: AuthRequest, res: Response): P
     const totalPaid = contributions.reduce((sum, c) => sum + c.amount, 0);
     const expectedPerMonth = chama?.contributionAmount || 0;
     const expectedTotal = contributions.length * expectedPerMonth;
-    const missedCount = contributions.filter(c => c.status === 'PENDING').length;
-    const partialCount = contributions.filter(c => c.status === 'PARTIAL').length;
+    const missedCount = contributions.filter(
+      (c) => c.status === "PENDING",
+    ).length;
+    const partialCount = contributions.filter(
+      (c) => c.status === "PARTIAL",
+    ).length;
 
     res.json({
       success: true,
@@ -422,9 +452,14 @@ export const getMemberContributions = async (req: AuthRequest, res: Response): P
         contributionCount: contributions.length,
         missedMonths: missedCount,
         partialMonths: partialCount,
-        complianceRate: contributions.length > 0 
-          ? ((contributions.length - missedCount - partialCount) / contributions.length * 100).toFixed(2)
-          : 100,
+        complianceRate:
+          contributions.length > 0
+            ? (
+                ((contributions.length - missedCount - partialCount) /
+                  contributions.length) *
+                100
+              ).toFixed(2)
+            : 100,
       },
       contributions,
       chamaSettings: {
@@ -433,22 +468,28 @@ export const getMemberContributions = async (req: AuthRequest, res: Response): P
       },
     });
   } catch (error) {
-    console.error('Get member contributions error:', error);
-    res.status(500).json({ error: 'Failed to fetch member contributions' });
+    console.error("Get member contributions error:", error);
+    res.status(500).json({ error: "Failed to fetch member contributions" });
   }
 };
 
 // ==================== UPDATE ====================
 
 // Update contribution (Treasurer/OWNER only)
-export const updateContribution = async (req: AuthRequest, res: Response): Promise<void> => {
+export const updateContribution = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId, contributionId } = req.params as {chamaId: string, contributionId: string}
+    const { chamaId, contributionId } = req.params as {
+      chamaId: string;
+      contributionId: string;
+    };
     const { amount, status, paymentMethod, notes } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -462,8 +503,13 @@ export const updateContribution = async (req: AuthRequest, res: Response): Promi
       },
     });
 
-    if (!membership || (membership.role !== 'TREASURER' && membership.role !== 'OWNER')) {
-      res.status(403).json({ error: 'Only treasurer or owner can update contributions' });
+    if (
+      !membership ||
+      (membership.role !== "TREASURER" && membership.role !== "OWNER")
+    ) {
+      res
+        .status(403)
+        .json({ error: "Only treasurer or owner can update contributions" });
       return;
     }
 
@@ -473,7 +519,7 @@ export const updateContribution = async (req: AuthRequest, res: Response): Promi
     });
 
     if (!oldContribution || oldContribution.chamaId !== chamaId) {
-      res.status(404).json({ error: 'Contribution not found' });
+      res.status(404).json({ error: "Contribution not found" });
       return;
     }
 
@@ -503,8 +549,8 @@ export const updateContribution = async (req: AuthRequest, res: Response): Promi
         data: {
           chamaId,
           userId,
-          action: 'UPDATE_CONTRIBUTION',
-          entity: 'Contribution',
+          action: "UPDATE_CONTRIBUTION",
+          entity: "Contribution",
           entityId: contributionId,
           oldValues: {
             amount: oldContribution.amount,
@@ -524,25 +570,31 @@ export const updateContribution = async (req: AuthRequest, res: Response): Promi
 
     res.json({
       success: true,
-      message: 'Contribution updated successfully',
+      message: "Contribution updated successfully",
       contribution: updated,
     });
   } catch (error) {
-    console.error('Update contribution error:', error);
-    res.status(500).json({ error: 'Failed to update contribution' });
+    console.error("Update contribution error:", error);
+    res.status(500).json({ error: "Failed to update contribution" });
   }
 };
 
 // ==================== DELETE ====================
 
 // Delete contribution (OWNER only)
-export const deleteContribution = async (req: AuthRequest, res: Response): Promise<void> => {
+export const deleteContribution = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId, contributionId } = req.params as {chamaId: string, contributionId: string}
+    const { chamaId, contributionId } = req.params as {
+      chamaId: string;
+      contributionId: string;
+    };
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -556,8 +608,10 @@ export const deleteContribution = async (req: AuthRequest, res: Response): Promi
       },
     });
 
-    if (!membership || membership.role !== 'OWNER') {
-      res.status(403).json({ error: 'Only chama owner can delete contributions' });
+    if (!membership || membership.role !== "OWNER") {
+      res
+        .status(403)
+        .json({ error: "Only chama owner can delete contributions" });
       return;
     }
 
@@ -567,7 +621,7 @@ export const deleteContribution = async (req: AuthRequest, res: Response): Promi
     });
 
     if (!contribution || contribution.chamaId !== chamaId) {
-      res.status(404).json({ error: 'Contribution not found' });
+      res.status(404).json({ error: "Contribution not found" });
       return;
     }
 
@@ -582,8 +636,8 @@ export const deleteContribution = async (req: AuthRequest, res: Response): Promi
         data: {
           chamaId,
           userId,
-          action: 'DELETE_CONTRIBUTION',
-          entity: 'Contribution',
+          action: "DELETE_CONTRIBUTION",
+          entity: "Contribution",
           entityId: contributionId,
           oldValues: {
             userId: contribution.userId,
@@ -597,24 +651,27 @@ export const deleteContribution = async (req: AuthRequest, res: Response): Promi
 
     res.json({
       success: true,
-      message: 'Contribution deleted successfully',
+      message: "Contribution deleted successfully",
     });
   } catch (error) {
-    console.error('Delete contribution error:', error);
-    res.status(500).json({ error: 'Failed to delete contribution' });
+    console.error("Delete contribution error:", error);
+    res.status(500).json({ error: "Failed to delete contribution" });
   }
 };
 
 // ==================== DASHBOARD STATS ====================
 
 // Get contribution dashboard statistics
-export const getContributionStats = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getContributionStats = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
     const { chamaId } = req.params as { chamaId: string };
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -629,7 +686,7 @@ export const getContributionStats = async (req: AuthRequest, res: Response): Pro
     });
 
     if (!membership) {
-      res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: "Access denied" });
       return;
     }
 
@@ -644,7 +701,7 @@ export const getContributionStats = async (req: AuthRequest, res: Response): Pro
     });
 
     if (!chama) {
-      res.status(404).json({ error: 'Chama not found' });
+      res.status(404).json({ error: "Chama not found" });
       return;
     }
 
@@ -659,7 +716,7 @@ export const getContributionStats = async (req: AuthRequest, res: Response): Pro
       where: {
         chamaId,
         month: currentMonth,
-        status: 'PAID',
+        status: "PAID",
       },
       _sum: {
         amount: true,
@@ -675,7 +732,7 @@ export const getContributionStats = async (req: AuthRequest, res: Response): Pro
         createdAt: {
           gte: yearStart,
         },
-        status: 'PAID',
+        status: "PAID",
       },
       _sum: {
         amount: true,
@@ -687,13 +744,15 @@ export const getContributionStats = async (req: AuthRequest, res: Response): Pro
       where: {
         chamaId,
         month: currentMonth,
-        status: 'PAID',
+        status: "PAID",
       },
       select: { userId: true },
     });
 
-    const paidMemberIds = paidMembers.map(p => p.userId);
-    const pendingMembers = chama.memberships.filter(m => !paidMemberIds.includes(m.userId));
+    const paidMemberIds = paidMembers.map((p) => p.userId);
+    const pendingMembers = chama.memberships.filter(
+      (m) => !paidMemberIds.includes(m.userId),
+    );
 
     res.json({
       success: true,
@@ -701,17 +760,20 @@ export const getContributionStats = async (req: AuthRequest, res: Response): Pro
         totalMembers,
         expectedMonthlyTotal: totalMembers * expectedPerMember,
         currentMonthCollected: currentMonthContributions._sum.amount || 0,
-        currentMonthCompliance: totalMembers > 0 
-          ? ((currentMonthContributions._count / totalMembers) * 100).toFixed(1)
-          : 0,
+        currentMonthCompliance:
+          totalMembers > 0
+            ? ((currentMonthContributions._count / totalMembers) * 100).toFixed(
+                1,
+              )
+            : 0,
         ytdTotal: ytdTotal._sum.amount || 0,
         pendingCount: pendingMembers.length,
-        pendingMembers: pendingMembers.map(m => m.userId),
+        pendingMembers: pendingMembers.map((m) => m.userId),
       },
       userRole: membership.role,
     });
   } catch (error) {
-    console.error('Get stats error:', error);
-    res.status(500).json({ error: 'Failed to fetch statistics' });
+    console.error("Get stats error:", error);
+    res.status(500).json({ error: "Failed to fetch statistics" });
   }
 };

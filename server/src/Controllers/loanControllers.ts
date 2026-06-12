@@ -1,20 +1,23 @@
-import { Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { AuthRequest } from '../types/express.js';
+import { Response } from "express";
+import { PrismaClient } from "@prisma/client";
+import { AuthRequest } from "../types/express.js";
 
 const prisma = new PrismaClient();
 
 // ==================== CREATE ====================
 
 // Request a loan (MEMBER only)
-export const requestLoan = async (req: AuthRequest, res: Response): Promise<void> => {
+export const requestLoan = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId } = req.params as {chamaId: string};
+    const { chamaId } = req.params as { chamaId: string };
     const { amount, interestRate, repaymentPeriod, purpose } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -32,18 +35,20 @@ export const requestLoan = async (req: AuthRequest, res: Response): Promise<void
     });
 
     if (!membership) {
-      res.status(403).json({ error: 'You are not a member of this chama' });
+      res.status(403).json({ error: "You are not a member of this chama" });
       return;
     }
 
     // Validate input
     if (!amount || !repaymentPeriod) {
-      res.status(400).json({ error: 'Amount and repayment period are required' });
+      res
+        .status(400)
+        .json({ error: "Amount and repayment period are required" });
       return;
     }
 
     if (amount <= 0) {
-      res.status(400).json({ error: 'Amount must be greater than 0' });
+      res.status(400).json({ error: "Amount must be greater than 0" });
       return;
     }
 
@@ -52,12 +57,17 @@ export const requestLoan = async (req: AuthRequest, res: Response): Promise<void
       where: {
         userId,
         chamaId,
-        status: { in: ['PENDING', 'APPROVED', 'ACTIVE'] },
+        status: { in: ["PENDING", "APPROVED", "ACTIVE"] },
       },
     });
 
     if (activeLoan) {
-      res.status(400).json({ error: 'You have an existing loan request that is still pending or active' });
+      res
+        .status(400)
+        .json({
+          error:
+            "You have an existing loan request that is still pending or active",
+        });
       return;
     }
 
@@ -76,7 +86,7 @@ export const requestLoan = async (req: AuthRequest, res: Response): Promise<void
           repaymentPeriod: parseInt(repaymentPeriod),
           balance: totalAmount,
           purpose,
-          status: 'PENDING',
+          status: "PENDING",
         },
         include: {
           user: {
@@ -95,8 +105,8 @@ export const requestLoan = async (req: AuthRequest, res: Response): Promise<void
         data: {
           chamaId,
           userId,
-          action: 'REQUEST_LOAN',
-          entity: 'Loan',
+          action: "REQUEST_LOAN",
+          entity: "Loan",
           entityId: newLoan.id,
           newValues: {
             amount,
@@ -112,25 +122,31 @@ export const requestLoan = async (req: AuthRequest, res: Response): Promise<void
 
     res.status(201).json({
       success: true,
-      message: 'Loan request submitted successfully',
+      message: "Loan request submitted successfully",
       loan,
     });
   } catch (error) {
-    console.error('Request loan error:', error);
-    res.status(500).json({ error: 'Failed to submit loan request' });
+    console.error("Request loan error:", error);
+    res.status(500).json({ error: "Failed to submit loan request" });
   }
 };
 
 // ==================== UPDATE (APPROVE/REJECT) ====================
 
 // Approve loan (TREASURER/OWNER only)
-export const approveLoan = async (req: AuthRequest, res: Response): Promise<void> => {
+export const approveLoan = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId, loanId} = req.params as {chamaId: string, loanId: string};
+    const { chamaId, loanId } = req.params as {
+      chamaId: string;
+      loanId: string;
+    };
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -144,8 +160,13 @@ export const approveLoan = async (req: AuthRequest, res: Response): Promise<void
       },
     });
 
-    if (!membership || (membership.role !== 'TREASURER' && membership.role !== 'OWNER')) {
-      res.status(403).json({ error: 'Only treasurer or owner can approve loans' });
+    if (
+      !membership ||
+      (membership.role !== "TREASURER" && membership.role !== "OWNER")
+    ) {
+      res
+        .status(403)
+        .json({ error: "Only treasurer or owner can approve loans" });
       return;
     }
 
@@ -161,12 +182,14 @@ export const approveLoan = async (req: AuthRequest, res: Response): Promise<void
     });
 
     if (!loan) {
-      res.status(404).json({ error: 'Loan not found' });
+      res.status(404).json({ error: "Loan not found" });
       return;
     }
 
-    if (loan.status !== 'PENDING') {
-      res.status(400).json({ error: `Cannot approve loan with status: ${loan.status}` });
+    if (loan.status !== "PENDING") {
+      res
+        .status(400)
+        .json({ error: `Cannot approve loan with status: ${loan.status}` });
       return;
     }
 
@@ -175,7 +198,7 @@ export const approveLoan = async (req: AuthRequest, res: Response): Promise<void
       const approvedLoan = await tx.loan.update({
         where: { id: loanId },
         data: {
-          status: 'APPROVED',
+          status: "APPROVED",
           approvedBy: userId,
           approvedAt: new Date(),
         },
@@ -196,11 +219,11 @@ export const approveLoan = async (req: AuthRequest, res: Response): Promise<void
         data: {
           chamaId,
           userId,
-          action: 'APPROVE_LOAN',
-          entity: 'Loan',
+          action: "APPROVE_LOAN",
+          entity: "Loan",
           entityId: loanId,
           oldValues: { status: loan.status },
-          newValues: { status: 'APPROVED', approvedBy: userId },
+          newValues: { status: "APPROVED", approvedBy: userId },
         },
       });
 
@@ -209,24 +232,30 @@ export const approveLoan = async (req: AuthRequest, res: Response): Promise<void
 
     res.json({
       success: true,
-      message: 'Loan approved successfully',
+      message: "Loan approved successfully",
       loan: updatedLoan,
     });
   } catch (error) {
-    console.error('Approve loan error:', error);
-    res.status(500).json({ error: 'Failed to approve loan' });
+    console.error("Approve loan error:", error);
+    res.status(500).json({ error: "Failed to approve loan" });
   }
 };
 
 // Reject loan (TREASURER/OWNER only)
-export const rejectLoan = async (req: AuthRequest, res: Response): Promise<void> => {
+export const rejectLoan = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId, loanId} = req.params as {chamaId: string, loanId: string};
+    const { chamaId, loanId } = req.params as {
+      chamaId: string;
+      loanId: string;
+    };
     const { rejectionReason } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -240,8 +269,13 @@ export const rejectLoan = async (req: AuthRequest, res: Response): Promise<void>
       },
     });
 
-    if (!membership || (membership.role !== 'TREASURER' && membership.role !== 'OWNER')) {
-      res.status(403).json({ error: 'Only treasurer or owner can reject loans' });
+    if (
+      !membership ||
+      (membership.role !== "TREASURER" && membership.role !== "OWNER")
+    ) {
+      res
+        .status(403)
+        .json({ error: "Only treasurer or owner can reject loans" });
       return;
     }
 
@@ -254,12 +288,14 @@ export const rejectLoan = async (req: AuthRequest, res: Response): Promise<void>
     });
 
     if (!loan) {
-      res.status(404).json({ error: 'Loan not found' });
+      res.status(404).json({ error: "Loan not found" });
       return;
     }
 
-    if (loan.status !== 'PENDING') {
-      res.status(400).json({ error: `Cannot reject loan with status: ${loan.status}` });
+    if (loan.status !== "PENDING") {
+      res
+        .status(400)
+        .json({ error: `Cannot reject loan with status: ${loan.status}` });
       return;
     }
 
@@ -268,10 +304,10 @@ export const rejectLoan = async (req: AuthRequest, res: Response): Promise<void>
       const rejectedLoan = await tx.loan.update({
         where: { id: loanId },
         data: {
-          status: 'REJECTED',
+          status: "REJECTED",
           rejectedBy: userId,
           rejectedAt: new Date(),
-          rejectionReason: rejectionReason || 'No reason provided',
+          rejectionReason: rejectionReason || "No reason provided",
         },
         include: {
           user: {
@@ -289,11 +325,11 @@ export const rejectLoan = async (req: AuthRequest, res: Response): Promise<void>
         data: {
           chamaId,
           userId,
-          action: 'REJECT_LOAN',
-          entity: 'Loan',
+          action: "REJECT_LOAN",
+          entity: "Loan",
           entityId: loanId,
           oldValues: { status: loan.status },
-          newValues: { status: 'REJECTED', rejectionReason },
+          newValues: { status: "REJECTED", rejectionReason },
         },
       });
 
@@ -302,23 +338,29 @@ export const rejectLoan = async (req: AuthRequest, res: Response): Promise<void>
 
     res.json({
       success: true,
-      message: 'Loan rejected',
+      message: "Loan rejected",
       loan: updatedLoan,
     });
   } catch (error) {
-    console.error('Reject loan error:', error);
-    res.status(500).json({ error: 'Failed to reject loan' });
+    console.error("Reject loan error:", error);
+    res.status(500).json({ error: "Failed to reject loan" });
   }
 };
 
 // Mark loan as ACTIVE (after disbursement)
-export const activateLoan = async (req: AuthRequest, res: Response): Promise<void> => {
+export const activateLoan = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId, loanId } = req.params as {chamaId: string, loanId: string}
+    const { chamaId, loanId } = req.params as {
+      chamaId: string;
+      loanId: string;
+    };
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -332,8 +374,13 @@ export const activateLoan = async (req: AuthRequest, res: Response): Promise<voi
       },
     });
 
-    if (!membership || (membership.role !== 'TREASURER' && membership.role !== 'OWNER')) {
-      res.status(403).json({ error: 'Only treasurer or owner can activate loans' });
+    if (
+      !membership ||
+      (membership.role !== "TREASURER" && membership.role !== "OWNER")
+    ) {
+      res
+        .status(403)
+        .json({ error: "Only treasurer or owner can activate loans" });
       return;
     }
 
@@ -346,12 +393,14 @@ export const activateLoan = async (req: AuthRequest, res: Response): Promise<voi
     });
 
     if (!loan) {
-      res.status(404).json({ error: 'Loan not found' });
+      res.status(404).json({ error: "Loan not found" });
       return;
     }
 
-    if (loan.status !== 'APPROVED') {
-      res.status(400).json({ error: `Cannot activate loan with status: ${loan.status}` });
+    if (loan.status !== "APPROVED") {
+      res
+        .status(400)
+        .json({ error: `Cannot activate loan with status: ${loan.status}` });
       return;
     }
 
@@ -359,7 +408,7 @@ export const activateLoan = async (req: AuthRequest, res: Response): Promise<voi
     const updatedLoan = await prisma.loan.update({
       where: { id: loanId },
       data: {
-        status: 'ACTIVE',
+        status: "ACTIVE",
       },
       include: {
         user: {
@@ -374,26 +423,32 @@ export const activateLoan = async (req: AuthRequest, res: Response): Promise<voi
 
     res.json({
       success: true,
-      message: 'Loan activated successfully',
+      message: "Loan activated successfully",
       loan: updatedLoan,
     });
   } catch (error) {
-    console.error('Activate loan error:', error);
-    res.status(500).json({ error: 'Failed to activate loan' });
+    console.error("Activate loan error:", error);
+    res.status(500).json({ error: "Failed to activate loan" });
   }
 };
 
 // ==================== REPAYMENTS ====================
 
 // Record loan repayment
-export const recordRepayment = async (req: AuthRequest, res: Response): Promise<void> => {
+export const recordRepayment = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId, loanId} = req.params as {chamaId: string, loanId: string};
+    const { chamaId, loanId } = req.params as {
+      chamaId: string;
+      loanId: string;
+    };
     const { amount, notes } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -407,8 +462,13 @@ export const recordRepayment = async (req: AuthRequest, res: Response): Promise<
       },
     });
 
-    if (!membership || (membership.role !== 'TREASURER' && membership.role !== 'OWNER')) {
-      res.status(403).json({ error: 'Only treasurer or owner can record repayments' });
+    if (
+      !membership ||
+      (membership.role !== "TREASURER" && membership.role !== "OWNER")
+    ) {
+      res
+        .status(403)
+        .json({ error: "Only treasurer or owner can record repayments" });
       return;
     }
 
@@ -421,22 +481,28 @@ export const recordRepayment = async (req: AuthRequest, res: Response): Promise<
     });
 
     if (!loan) {
-      res.status(404).json({ error: 'Loan not found' });
+      res.status(404).json({ error: "Loan not found" });
       return;
     }
 
-    if (loan.status !== 'ACTIVE') {
-      res.status(400).json({ error: `Cannot record repayment for loan with status: ${loan.status}` });
+    if (loan.status !== "ACTIVE") {
+      res
+        .status(400)
+        .json({
+          error: `Cannot record repayment for loan with status: ${loan.status}`,
+        });
       return;
     }
 
     if (!amount || amount <= 0) {
-      res.status(400).json({ error: 'Valid amount is required' });
+      res.status(400).json({ error: "Valid amount is required" });
       return;
     }
 
     if (amount > loan.balance) {
-      res.status(400).json({ error: `Amount exceeds remaining balance of ${loan.balance}` });
+      res
+        .status(400)
+        .json({ error: `Amount exceeds remaining balance of ${loan.balance}` });
       return;
     }
 
@@ -454,7 +520,7 @@ export const recordRepayment = async (req: AuthRequest, res: Response): Promise<
 
       // Update loan balance
       const newBalance = loan.balance - amount;
-      const newStatus = newBalance === 0 ? 'COMPLETED' : 'ACTIVE';
+      const newStatus = newBalance === 0 ? "COMPLETED" : "ACTIVE";
 
       const updatedLoan = await tx.loan.update({
         where: { id: loanId },
@@ -478,8 +544,8 @@ export const recordRepayment = async (req: AuthRequest, res: Response): Promise<
         data: {
           chamaId,
           userId,
-          action: 'RECORD_REPAYMENT',
-          entity: 'LoanRepayment',
+          action: "RECORD_REPAYMENT",
+          entity: "LoanRepayment",
           entityId: repayment.id,
           newValues: {
             loanId,
@@ -494,26 +560,33 @@ export const recordRepayment = async (req: AuthRequest, res: Response): Promise<
 
     res.json({
       success: true,
-      message: result.loan.status === 'COMPLETED' 
-        ? 'Loan fully repaid! 🎉' 
-        : 'Repayment recorded successfully',
+      message:
+        result.loan.status === "COMPLETED"
+          ? "Loan fully repaid! 🎉"
+          : "Repayment recorded successfully",
       repayment: result.repayment,
       loan: result.loan,
     });
   } catch (error) {
-    console.error('Record repayment error:', error);
-    res.status(500).json({ error: 'Failed to record repayment' });
+    console.error("Record repayment error:", error);
+    res.status(500).json({ error: "Failed to record repayment" });
   }
 };
 
 // Get loan repayment history
-export const getRepaymentHistory = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getRepaymentHistory = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId, loanId } = req.params as {chamaId: string, loanId: string}
+    const { chamaId, loanId } = req.params as {
+      chamaId: string;
+      loanId: string;
+    };
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -528,7 +601,7 @@ export const getRepaymentHistory = async (req: AuthRequest, res: Response): Prom
     });
 
     if (!membership) {
-      res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: "Access denied" });
       return;
     }
 
@@ -548,20 +621,20 @@ export const getRepaymentHistory = async (req: AuthRequest, res: Response): Prom
         },
         repayments: {
           orderBy: {
-            date: 'desc',
+            date: "desc",
           },
         },
       },
     });
 
     if (!loan) {
-      res.status(404).json({ error: 'Loan not found' });
+      res.status(404).json({ error: "Loan not found" });
       return;
     }
 
     // Members can only see their own loans
-    if (membership.role === 'MEMBER' && loan.userId !== userId) {
-      res.status(403).json({ error: 'Access denied' });
+    if (membership.role === "MEMBER" && loan.userId !== userId) {
+      res.status(403).json({ error: "Access denied" });
       return;
     }
 
@@ -574,7 +647,7 @@ export const getRepaymentHistory = async (req: AuthRequest, res: Response): Prom
         id: loan.id,
         amount: loan.amount,
         interestRate: loan.interestRate,
-        totalPayable: loan.amount + (loan.amount * loan.interestRate / 100),
+        totalPayable: loan.amount + (loan.amount * loan.interestRate) / 100,
         repaymentPeriod: loan.repaymentPeriod,
         status: loan.status,
         purpose: loan.purpose,
@@ -586,26 +659,33 @@ export const getRepaymentHistory = async (req: AuthRequest, res: Response): Prom
       summary: {
         totalRepaid,
         remainingBalance,
-        progressPercent: ((totalRepaid / (loan.amount + (loan.amount * loan.interestRate / 100))) * 100).toFixed(2),
+        progressPercent: (
+          (totalRepaid /
+            (loan.amount + (loan.amount * loan.interestRate) / 100)) *
+          100
+        ).toFixed(2),
       },
     });
   } catch (error) {
-    console.error('Get repayment history error:', error);
-    res.status(500).json({ error: 'Failed to fetch repayment history' });
+    console.error("Get repayment history error:", error);
+    res.status(500).json({ error: "Failed to fetch repayment history" });
   }
 };
 
 // ==================== READ ====================
 
 // Get all loans for a chama
-export const getLoans = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getLoans = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId } = req.params as {chamaId: string};
+    const { chamaId } = req.params as { chamaId: string };
     const { status, userId } = req.query;
     const currentUserId = req.user?.id;
 
     if (!currentUserId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -620,7 +700,7 @@ export const getLoans = async (req: AuthRequest, res: Response): Promise<void> =
     });
 
     if (!membership) {
-      res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: "Access denied" });
       return;
     }
 
@@ -631,9 +711,9 @@ export const getLoans = async (req: AuthRequest, res: Response): Promise<void> =
       filters.status = status as string;
     }
 
-    if (userId && membership.role !== 'MEMBER') {
+    if (userId && membership.role !== "MEMBER") {
       filters.userId = userId as string;
-    } else if (membership.role === 'MEMBER') {
+    } else if (membership.role === "MEMBER") {
       filters.userId = currentUserId;
     }
 
@@ -650,12 +730,12 @@ export const getLoans = async (req: AuthRequest, res: Response): Promise<void> =
           },
         },
         repayments: {
-          orderBy: { date: 'desc' },
+          orderBy: { date: "desc" },
           take: 5, // Last 5 repayments
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
@@ -663,7 +743,7 @@ export const getLoans = async (req: AuthRequest, res: Response): Promise<void> =
     const stats = await prisma.loan.aggregate({
       where: {
         chamaId,
-        ...(membership.role === 'MEMBER' ? { userId: currentUserId } : {}),
+        ...(membership.role === "MEMBER" ? { userId: currentUserId } : {}),
       },
       _sum: {
         amount: true,
@@ -672,9 +752,9 @@ export const getLoans = async (req: AuthRequest, res: Response): Promise<void> =
       _count: true,
     });
 
-    const activeLoans = loans.filter(l => l.status === 'ACTIVE');
-    const completedLoans = loans.filter(l => l.status === 'COMPLETED');
-    const pendingLoans = loans.filter(l => l.status === 'PENDING');
+    const activeLoans = loans.filter((l) => l.status === "ACTIVE");
+    const completedLoans = loans.filter((l) => l.status === "COMPLETED");
+    const pendingLoans = loans.filter((l) => l.status === "PENDING");
 
     res.json({
       success: true,
@@ -690,19 +770,25 @@ export const getLoans = async (req: AuthRequest, res: Response): Promise<void> =
       userRole: membership.role,
     });
   } catch (error) {
-    console.error('Get loans error:', error);
-    res.status(500).json({ error: 'Failed to fetch loans' });
+    console.error("Get loans error:", error);
+    res.status(500).json({ error: "Failed to fetch loans" });
   }
 };
 
 // Get single loan by ID
-export const getLoanById = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getLoanById = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId, loanId } = req.params as {chamaId: string, loanId: string}
+    const { chamaId, loanId } = req.params as {
+      chamaId: string;
+      loanId: string;
+    };
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -717,7 +803,7 @@ export const getLoanById = async (req: AuthRequest, res: Response): Promise<void
     });
 
     if (!membership) {
-      res.status(403).json({ error: 'Access denied' });
+      res.status(403).json({ error: "Access denied" });
       return;
     }
 
@@ -737,7 +823,7 @@ export const getLoanById = async (req: AuthRequest, res: Response): Promise<void
         },
         repayments: {
           orderBy: {
-            date: 'desc',
+            date: "desc",
           },
         },
         chama: {
@@ -749,18 +835,18 @@ export const getLoanById = async (req: AuthRequest, res: Response): Promise<void
     });
 
     if (!loan) {
-      res.status(404).json({ error: 'Loan not found' });
+      res.status(404).json({ error: "Loan not found" });
       return;
     }
 
     // Members can only see their own
-    if (membership.role === 'MEMBER' && loan.userId !== userId) {
-      res.status(403).json({ error: 'Access denied' });
+    if (membership.role === "MEMBER" && loan.userId !== userId) {
+      res.status(403).json({ error: "Access denied" });
       return;
     }
 
     const totalRepaid = loan.repayments.reduce((sum, r) => sum + r.amount, 0);
-    const totalPayable = loan.amount + (loan.amount * loan.interestRate / 100);
+    const totalPayable = loan.amount + (loan.amount * loan.interestRate) / 100;
 
     res.json({
       success: true,
@@ -773,21 +859,27 @@ export const getLoanById = async (req: AuthRequest, res: Response): Promise<void
       },
     });
   } catch (error) {
-    console.error('Get loan error:', error);
-    res.status(500).json({ error: 'Failed to fetch loan' });
+    console.error("Get loan error:", error);
+    res.status(500).json({ error: "Failed to fetch loan" });
   }
 };
 
 // ==================== DELETE ====================
 
 // Delete loan (OWNER only, only if PENDING)
-export const deleteLoan = async (req: AuthRequest, res: Response): Promise<void> => {
+export const deleteLoan = async (
+  req: AuthRequest,
+  res: Response,
+): Promise<void> => {
   try {
-    const { chamaId, loanId } = req.params as {chamaId: string, loanId: string}
+    const { chamaId, loanId } = req.params as {
+      chamaId: string;
+      loanId: string;
+    };
     const userId = req.user?.id;
 
     if (!userId) {
-      res.status(401).json({ error: 'Not authenticated' });
+      res.status(401).json({ error: "Not authenticated" });
       return;
     }
 
@@ -801,8 +893,8 @@ export const deleteLoan = async (req: AuthRequest, res: Response): Promise<void>
       },
     });
 
-    if (!membership || membership.role !== 'OWNER') {
-      res.status(403).json({ error: 'Only chama owner can delete loans' });
+    if (!membership || membership.role !== "OWNER") {
+      res.status(403).json({ error: "Only chama owner can delete loans" });
       return;
     }
 
@@ -815,12 +907,14 @@ export const deleteLoan = async (req: AuthRequest, res: Response): Promise<void>
     });
 
     if (!loan) {
-      res.status(404).json({ error: 'Loan not found' });
+      res.status(404).json({ error: "Loan not found" });
       return;
     }
 
-    if (loan.status !== 'PENDING') {
-      res.status(400).json({ error: `Cannot delete loan with status: ${loan.status}` });
+    if (loan.status !== "PENDING") {
+      res
+        .status(400)
+        .json({ error: `Cannot delete loan with status: ${loan.status}` });
       return;
     }
 
@@ -841,8 +935,8 @@ export const deleteLoan = async (req: AuthRequest, res: Response): Promise<void>
         data: {
           chamaId,
           userId,
-          action: 'DELETE_LOAN',
-          entity: 'Loan',
+          action: "DELETE_LOAN",
+          entity: "Loan",
           entityId: loanId,
           oldValues: {
             userId: loan.userId,
@@ -855,10 +949,10 @@ export const deleteLoan = async (req: AuthRequest, res: Response): Promise<void>
 
     res.json({
       success: true,
-      message: 'Loan deleted successfully',
+      message: "Loan deleted successfully",
     });
   } catch (error) {
-    console.error('Delete loan error:', error);
-    res.status(500).json({ error: 'Failed to delete loan' });
+    console.error("Delete loan error:", error);
+    res.status(500).json({ error: "Failed to delete loan" });
   }
 };
