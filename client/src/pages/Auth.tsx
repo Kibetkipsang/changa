@@ -261,7 +261,7 @@ export function Auth() {
                           setLoginData({ ...loginData, email: e.target.value })
                         }
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
-                        placeholder="you@example.com"
+                        placeholder="wema@example.com"
                       />
                     </div>
                   </div>
@@ -330,7 +330,7 @@ export function Auth() {
                           })
                         }
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
-                        placeholder="John Doe"
+                        placeholder="Wema Sineni"
                       />
                     </div>
                   </div>
@@ -352,7 +352,7 @@ export function Auth() {
                           })
                         }
                         className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
-                        placeholder="you@example.com"
+                        placeholder="wema@example.com"
                       />
                     </div>
                   </div>
