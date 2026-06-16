@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { api } from "../lib/api";
 import { Layout } from "../components/Layout";
 import { useChamaStore } from "../stores/chamaStore";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, DollarSign, Clock } from "lucide-react";
 
 export function CreateChama() {
   const navigate = useNavigate();
@@ -17,6 +17,8 @@ export function CreateChama() {
     contributionAmount: "",
     frequency: "monthly",
     penaltyAmount: "",
+    startDate: "",
+    loanInterestRate: "",
   });
 
   const createMutation = useMutation({
@@ -47,7 +49,24 @@ export function CreateChama() {
       penaltyAmount: formData.penaltyAmount
         ? parseFloat(formData.penaltyAmount)
         : null,
+      loanInterestRate: formData.loanInterestRate
+        ? parseFloat(formData.loanInterestRate)
+        : null,
+      startDate: formData.startDate || new Date().toISOString().split('T')[0],
     });
+  };
+
+  // Get today's date for the min attribute
+  const today = new Date().toISOString().split('T')[0];
+
+  // Get frequency label
+  const getFrequencyLabel = (freq: string) => {
+    switch(freq) {
+      case 'weekly': return 'Weekly';
+      case 'biweekly': return 'Bi-Weekly (Two Weeks)';
+      case 'monthly': return 'Monthly';
+      default: return freq;
+    }
   };
 
   return (
@@ -67,11 +86,12 @@ export function CreateChama() {
               Create a New Chama
             </h1>
             <p className="text-gray-600 mt-1">
-              Set up your savings group and invite members
+              Set up your savings group and configure settings
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Chama Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Chama Name <span className="text-red-500">*</span>
@@ -88,6 +108,7 @@ export function CreateChama() {
               />
             </div>
 
+            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Description
@@ -103,7 +124,8 @@ export function CreateChama() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Contribution Amount & Frequency */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Contribution Amount (KSh)
@@ -111,6 +133,7 @@ export function CreateChama() {
                 <input
                   type="number"
                   step="100"
+                  min="0"
                   value={formData.contributionAmount}
                   onChange={(e) =>
                     setFormData({
@@ -135,19 +158,45 @@ export function CreateChama() {
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition bg-white"
                 >
                   <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-Weekly (Two Weeks)</option>
                   <option value="monthly">Monthly</option>
                 </select>
               </div>
             </div>
 
+            {/* Start Date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Late Payment Penalty (KSh){" "}
-                <span className="text-gray-400 text-xs">Optional</span>
+                Contribution Start Date <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="date"
+                  required
+                  min={today}
+                  value={formData.startDate}
+                  onChange={(e) =>
+                    setFormData({ ...formData, startDate: e.target.value })
+                  }
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                The date when contributions will start. Cannot be in the past.
+              </p>
+            </div>
+
+            {/* Penalty Amount */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Late Payment Penalty (KSh)
+                <span className="text-gray-400 text-xs ml-1">Optional</span>
               </label>
               <input
                 type="number"
                 step="100"
+                min="0"
                 value={formData.penaltyAmount}
                 onChange={(e) =>
                   setFormData({ ...formData, penaltyAmount: e.target.value })
@@ -155,6 +204,73 @@ export function CreateChama() {
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
                 placeholder="e.g., 200"
               />
+            </div>
+
+            {/* Loan Interest Rate */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Default Loan Interest Rate (%)
+                <span className="text-gray-400 text-xs ml-1">Optional</span>
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="100"
+                  value={formData.loanInterestRate}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      loanInterestRate: e.target.value,
+                    })
+                  }
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+                  placeholder="e.g., 5"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Default interest rate for loans. Can be updated later in settings.
+              </p>
+            </div>
+
+            {/* Settings Summary */}
+            <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+              <h3 className="text-sm font-semibold text-purple-800 mb-2 flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Chama Settings Summary
+              </h3>
+              <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                <div>
+                  <span className="font-medium">Frequency:</span>{" "}
+                  {getFrequencyLabel(formData.frequency)}
+                </div>
+                <div>
+                  <span className="font-medium">Contribution:</span>{" "}
+                  {formData.contributionAmount 
+                    ? `KSh ${parseFloat(formData.contributionAmount).toLocaleString()}`
+                    : "Not set"}
+                </div>
+                <div>
+                  <span className="font-medium">Start Date:</span>{" "}
+                  {formData.startDate 
+                    ? new Date(formData.startDate).toLocaleDateString()
+                    : "Not set"}
+                </div>
+                <div>
+                  <span className="font-medium">Loan Interest:</span>{" "}
+                  {formData.loanInterestRate 
+                    ? `${formData.loanInterestRate}%`
+                    : "Not set"}
+                </div>
+                <div className="col-span-2">
+                  <span className="font-medium">Penalty:</span>{" "}
+                  {formData.penaltyAmount 
+                    ? `KSh ${parseFloat(formData.penaltyAmount).toLocaleString()}`
+                    : "Not set"}
+                </div>
+              </div>
             </div>
 
             <button
