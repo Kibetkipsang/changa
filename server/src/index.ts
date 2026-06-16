@@ -8,6 +8,8 @@ import authRoutes from "./routes/authRoutes.ts";
 import contributionRoutes from "./routes/contributionRoutes.ts";
 import loanRoutes from "./routes/loanRoutes.ts";
 import meetingRoutes from "./routes/meetingRoutes.ts";
+import analyticsRoutes from "./routes/analyticsRoutes.ts"
+import settingsRoutes from "./routes/settingsRoutes.ts"
 
 dotenv.config();
 const app = express();
@@ -37,6 +39,8 @@ app.use("/changa/auth", authRoutes);
 app.use("/changa/contribution", contributionRoutes);
 app.use("/changa/loans", loanRoutes);
 app.use("/changa/meeting", meetingRoutes);
+app.use("/changa/analytics", analyticsRoutes)
+app.use("/changa/settings", settingsRoutes)
 
 // health check
 app.get("/", (req, res) => {

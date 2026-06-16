@@ -19,6 +19,7 @@ model User {
   memberships   Membership[]
   contributions Contribution[]
   loans         Loan[]
+  notifications Notification[] // ✅ Added this
 }
 
 model Chama {
@@ -27,23 +28,32 @@ model Chama {
   description       String?
   inviteCode        String   @unique
   contributionAmount Float?
-  frequency         String   @default("monthly")
+  frequency         String   @default("monthly") // weekly, biweekly, monthly
   penaltyAmount     Float?
   createdBy         String
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   
+  // New fields
+  startDate         DateTime @default(now())
+  loanInterestRate  Float?   @default(0)
+  
   memberships   Membership[]
   contributions Contribution[]
   loans         Loan[]
   meetings      Meeting[]
+  settings      ChamaSettings?
+  analytics     ChamaAnalytics?
+  inviteTokens  InviteToken[]   // ✅ Added this
+  notifications Notification[]  // ✅ Added this
+  savedReports  SavedReport[]   // ✅ Added this
 }
 
 model Membership {
   id        String   @id @default(cuid())
   userId    String
   chamaId   String
-  role      String   @default("MEMBER")
+  role      String   @default("MEMBER") // OWNER, TREASURER, SECRETARY, MEMBER
   joinedAt  DateTime @default(now())
   
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -78,12 +88,21 @@ model Loan {
   repaymentPeriod Int      // Months
   balance         Float
   purpose         String?  // What the loan is for
-  status          String   @default("PENDING") // PENDING, APPROVED, ACTIVE, COMPLETED, DEFAULTED, REJECTED
+  status          String   @default("PENDING") // PENDING, APPROVED_BY_OWNER, APPROVED_BY_TREASURER, APPROVED, ACTIVE, COMPLETED, DEFAULTED, REJECTED, CANCELLED
+  
+  // Approval tracking
+  approvedByOwner    Boolean  @default(false)
+  approvedByTreasurer Boolean @default(false)
   approvedBy      String?
   approvedAt      DateTime?
   rejectedBy      String?
   rejectedAt      DateTime?
   rejectionReason String?
+  
+  // Cancellation tracking
+  cancelledBy     String?
+  cancelledAt     DateTime?
+  
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
@@ -123,14 +142,162 @@ model Meeting {
   chama Chama @relation(fields: [chamaId], references: [id], onDelete: Cascade)
 }
 
+// ============================================
+// SETTINGS TABLE
+// ============================================
+model ChamaSettings {
+  id                    String   @id @default(cuid())
+  chamaId               String   @unique
+  
+  // General Settings
+  allowMemberInvites    Boolean  @default(true)
+  requireApprovalForJoin Boolean  @default(false)
+  
+  // Contribution Settings
+  contributionDay       Int?     // Day of month/week for contributions
+  gracePeriodDays       Int      @default(3) // Days before penalty applies
+  allowPartialPayment   Boolean  @default(false)
+  
+  // Loan Settings
+  maxLoanAmount         Float?   // Maximum loan amount
+  minLoanAmount         Float?   // Minimum loan amount
+  defaultLoanPeriod     Int      @default(6) // Default months
+  maxLoanPeriod         Int      @default(12) // Maximum months
+  requireCollateral     Boolean  @default(false)
+  loanApprovalThreshold Float?   // Amount above which requires both approvals
+  
+  // Meeting Settings
+  meetingFrequency      String?  // weekly, biweekly, monthly
+  defaultMeetingDay     String?  // Monday, Tuesday, etc.
+  requireAttendance     Boolean  @default(false)
+  
+  // Notification Settings
+  notifyOnContribution  Boolean  @default(true)
+  notifyOnLoanRequest   Boolean  @default(true)
+  notifyOnMeeting       Boolean  @default(true)
+  notifyOnPayment       Boolean  @default(true)
+  
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  chama Chama @relation(fields: [chamaId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// ANALYTICS TABLE
+// ============================================
+model ChamaAnalytics {
+  id          String   @id @default(cuid())
+  chamaId     String   @unique
+  
+  // Member Statistics
+  totalMembers     Int     @default(0)
+  activeMembers    Int     @default(0)
+  newMembersThisMonth Int @default(0)
+  
+  // Contribution Statistics
+  totalContributions       Float   @default(0)
+  averageContribution      Float   @default(0)
+  monthlyContributionTotal Float   @default(0)
+  contributionCompliance   Float   @default(0) // Percentage
+  
+  // Loan Statistics
+  totalLoansDisbursed   Float   @default(0)
+  activeLoans           Int     @default(0)
+  totalRepayments       Float   @default(0)
+  defaultRate           Float   @default(0) // Percentage
+  averageLoanAmount     Float   @default(0)
+  
+  // Meeting Statistics
+  totalMeetings         Int     @default(0)
+  averageAttendance     Float   @default(0) // Percentage
+  
+  // Financial Summary
+  totalBalance          Float   @default(0)
+  totalIncome           Float   @default(0)
+  totalExpenses         Float   @default(0)
+  monthlyRevenue        Float   @default(0)
+  
+  // Growth Metrics
+  memberGrowthRate      Float   @default(0) // Percentage
+  contributionGrowth    Float   @default(0) // Percentage
+  loanGrowthRate        Float   @default(0) // Percentage
+  
+  // Last updated
+  lastUpdated  DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  chama Chama @relation(fields: [chamaId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// AUDIT LOG (Enhanced)
+// ============================================
 model AuditLog {
   id        String   @id @default(cuid())
   chamaId   String
   userId    String
-  action    String
-  entity    String
+  action    String   // CREATE, UPDATE, DELETE, APPROVE, REJECT, CANCEL
+  entity    String   // MEMBER, CONTRIBUTION, LOAN, MEETING, SETTINGS
   entityId  String
   oldValues Json?
   newValues Json?
+  ipAddress String?
+  userAgent String?
   createdAt DateTime @default(now())
+  
+  // Index for faster queries
+  @@index([chamaId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ============================================
+// INVITE TOKENS (Enhanced tracking)
+// ============================================
+model InviteToken {
+  id         String   @id @default(cuid())
+  chamaId    String
+  code       String   @unique
+  email      String?  // If sent to specific email
+  expiresAt  DateTime
+  usedAt     DateTime?
+  usedBy     String?  // User ID who used the invite
+  createdAt  DateTime @default(now())
+  
+  chama Chama @relation(fields: [chamaId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  chamaId     String?
+  type        String   // CONTRIBUTION, LOAN, MEETING, SYSTEM
+  title       String
+  message     String
+  link        String?  // URL to navigate to
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chama  Chama? @relation(fields: [chamaId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// SAVED REPORTS
+// ============================================
+model SavedReport {
+  id          String   @id @default(cuid())
+  chamaId     String
+  name        String
+  type        String   // CONTRIBUTIONS, LOANS, MEMBERS, FINANCIAL
+  filters     Json     // JSON of filter parameters
+  columns     Json?    // Selected columns to display
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  chama Chama @relation(fields: [chamaId], references: [id], onDelete: Cascade)
 }

@@ -23,6 +23,8 @@ import {
   Home,
   Info,
   Layers,
+  Settings,
+  BarChart3,
 } from "lucide-react";
 
 interface LayoutProps {
@@ -35,6 +37,8 @@ const navigation = [
   { name: "Loans", href: "/loans", icon: HandCoins },
   { name: "Meetings", href: "/meetings", icon: Calendar },
   { name: "Members", href: "/members", icon: Users },
+  { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 // Route name mapping for breadcrumbs
@@ -44,6 +48,8 @@ const routeNames: Record<string, string> = {
   "/loans": "Loans",
   "/meetings": "Meetings",
   "/members": "Members",
+  "/analytics": "Analytics",
+  "/settings": "Settings",
   "/create-chama": "Create Chama",
   "/join-chama": "Join Chama",
   "/my-chamas": "My Chamas",
@@ -106,6 +112,11 @@ export function Layout({ children }: LayoutProps) {
     setChamaDropdownOpen(false);
   };
 
+  // Check if route is active
+  const isActiveRoute = (href: string) => {
+    return location.pathname === href;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar overlay */}
@@ -136,7 +147,7 @@ export function Layout({ children }: LayoutProps) {
 
         <nav className="p-4 space-y-1">
           {navigation.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = isActiveRoute(item.href);
             return (
               <Link
                 key={item.name}

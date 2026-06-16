@@ -11,7 +11,9 @@ import { JoinChama } from "./pages/JoinChama";
 import { Contributions } from "./pages/Contributions";
 import { Loans } from "./pages/Loans";
 import { Meetings } from "./pages/Meetings";
-import { Members } from "./pages/Members";
+import { Members } from "./pages/Members"
+import { Analytics } from "./pages/Analytics";
+import { Settings } from "./pages/Settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,6 +52,22 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+  path="/settings"
+  element={
+    <ProtectedRoute>
+      <Settings />
+    </ProtectedRoute>
+  }
+/>
+<Route
+  path="/analytics"
+  element={
+    <ProtectedRoute>
+      <Analytics />
+    </ProtectedRoute>
+  }
+/>
           <Route
             path="/create-chama"
             element={
