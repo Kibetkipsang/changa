@@ -99,7 +99,6 @@ export const joinChama = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // find chama by invite code
     const chama = await prisma.chama.findUnique({
       where: {
         inviteCode: inviteCode.toUpperCase(),
@@ -114,7 +113,6 @@ export const joinChama = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // check if an existing member
     const existingMembership = await prisma.membership.findUnique({
       where: {
         userId_chamaId: {
@@ -135,7 +133,6 @@ export const joinChama = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    //add member with role member
     const newMember = await prisma.membership.create({
       data: {
         userId,
@@ -178,7 +175,7 @@ export const getMyChamas = async (req: AuthRequest, res: Response) => {
         chama: {
           include: {
             memberships: {
-              select: { id: true }, // Minimal selection for counting
+              select: { id: true },
             },
           },
         },
@@ -246,7 +243,6 @@ export const getChamaById = async (req: AuthRequest, res: Response) => {
     const userId = req.user.id;
     console.log("👤 GET CHAMA BY ID - UserId:", userId);
 
-    // check if user has access to this chama
     const membership = await prisma.membership.findUnique({
       where: {
         userId_chamaId: {
@@ -317,5 +313,560 @@ export const getChamaById = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       error: "Failed to fetch Chama.",
     });
+  }
+};
+
+// ============================================
+// EXIT CHAMA - Member leaves the chama
+// ============================================
+export const exitChama = async (req: AuthRequest, res: Response) => {
+  try {
+    const { chamaId } = req.params;
+    const userId = req.user?.id;
+
+    console.log("🚪 EXIT CHAMA - ChamaId:", chamaId, "UserId:", userId);
+
+    if (!userId) {
+      console.log("❌ EXIT CHAMA - No userId found");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (Array.isArray(chamaId)) {
+      return res.status(400).json({ error: "Invalid chama ID format" });
+    }
+
+    // Check if user is a member of this chama
+    const membership = await prisma.membership.findUnique({
+      where: {
+        userId_chamaId: {
+          userId,
+          chamaId,
+        },
+      },
+    });
+
+    if (!membership) {
+      console.log("❌ EXIT CHAMA - User is not a member of this chama");
+      return res.status(404).json({ error: "You are not a member of this chama" });
+    }
+
+    // Check if user is the owner - owner cannot exit
+    if (membership.role === "OWNER") {
+      console.log("❌ EXIT CHAMA - Owner cannot exit");
+      return res.status(403).json({ 
+        error: "The owner cannot exit the chama. You must delete the chama or transfer ownership first." 
+      });
+    }
+
+    // Remove the member
+    await prisma.membership.delete({
+      where: {
+        userId_chamaId: {
+          userId,
+          chamaId,
+        },
+      },
+    });
+
+    console.log("✅ EXIT CHAMA - User left the chama successfully");
+
+    // Log the action
+    await prisma.auditLog.create({
+      data: {
+        chamaId,
+        userId,
+        action: "EXIT",
+        entity: "MEMBER",
+        entityId: userId,
+        createdAt: new Date(),
+      },
+    });
+
+    res.json({
+      message: "You have left the chama successfully",
+    });
+  } catch (error) {
+    console.error("❌ EXIT CHAMA - Error:", error);
+    res.status(500).json({ error: "Failed to exit chama" });
+  }
+};
+
+// ============================================
+// REQUEST CHAMA DELETION - Owner requests deletion
+// ============================================
+export const requestChamaDeletion = async (req: AuthRequest, res: Response) => {
+  try {
+    const { chamaId } = req.params;
+    const userId = req.user?.id;
+
+    console.log("🗑️ REQUEST CHAMA DELETION - ChamaId:", chamaId, "UserId:", userId);
+
+    if (!userId) {
+      console.log("❌ REQUEST CHAMA DELETION - No userId found");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (Array.isArray(chamaId)) {
+      return res.status(400).json({ error: "Invalid chama ID format" });
+    }
+
+    // Check if user is the owner
+    const membership = await prisma.membership.findUnique({
+      where: {
+        userId_chamaId: {
+          userId,
+          chamaId,
+        },
+      },
+    });
+
+    if (!membership) {
+      console.log("❌ REQUEST CHAMA DELETION - User is not a member");
+      return res.status(404).json({ error: "You are not a member of this chama" });
+    }
+
+    if (membership.role !== "OWNER") {
+      console.log("❌ REQUEST CHAMA DELETION - User is not the owner");
+      return res.status(403).json({ error: "Only the owner can request chama deletion" });
+    }
+
+    // Check if chama exists
+    const chama = await prisma.chama.findUnique({
+      where: { id: chamaId },
+    });
+
+    if (!chama) {
+      console.log("❌ REQUEST CHAMA DELETION - Chama not found");
+      return res.status(404).json({ error: "Chama not found" });
+    }
+
+    // Check if a deletion request already exists
+    const existingRequest = await prisma.chamaDeletionRequest.findUnique({
+      where: { chamaId },
+    });
+
+    if (existingRequest) {
+      if (existingRequest.status === "PENDING") {
+        return res.status(400).json({ 
+          error: "A deletion request is already pending. Waiting for Secretary approval." 
+        });
+      }
+      if (existingRequest.status === "APPROVED") {
+        return res.status(400).json({ 
+          error: "This chama has already been approved for deletion. Please confirm deletion." 
+        });
+      }
+      if (existingRequest.status === "REJECTED") {
+        return res.status(400).json({ 
+          error: "The deletion request was rejected. Please contact the secretary for more information." 
+        });
+      }
+    }
+
+    // Create deletion request
+    const deletionRequest = await prisma.chamaDeletionRequest.create({
+      data: {
+        chamaId,
+        requestedBy: userId,
+        requestedAt: new Date(),
+        status: "PENDING",
+        ownerApproved: true,
+        ownerApprovedAt: new Date(),
+      },
+    });
+
+    console.log("✅ REQUEST CHAMA DELETION - Deletion request created:", deletionRequest.id);
+
+    // Find secretary for notification
+    const secretary = await prisma.membership.findFirst({
+      where: {
+        chamaId,
+        role: "SECRETARY",
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    // Log the action
+    await prisma.auditLog.create({
+      data: {
+        chamaId,
+        userId,
+        action: "REQUEST_DELETE",
+        entity: "CHAMA",
+        entityId: chamaId,
+        newValues: { status: "PENDING", requestedBy: userId },
+        createdAt: new Date(),
+      },
+    });
+
+    res.json({
+      message: "Deletion request submitted. Waiting for Secretary approval.",
+      request: deletionRequest,
+      secretary: secretary || null,
+    });
+  } catch (error) {
+    console.error("❌ REQUEST CHAMA DELETION - Error:", error);
+    res.status(500).json({ error: "Failed to request chama deletion" });
+  }
+};
+
+// ============================================
+// APPROVE CHAMA DELETION - Secretary approves
+// ============================================
+export const approveChamaDeletion = async (req: AuthRequest, res: Response) => {
+  try {
+    const { chamaId } = req.params;
+    const userId = req.user?.id;
+
+    console.log("✅ APPROVE CHAMA DELETION - ChamaId:", chamaId, "UserId:", userId);
+
+    if (!userId) {
+      console.log("❌ APPROVE CHAMA DELETION - No userId found");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (Array.isArray(chamaId)) {
+      return res.status(400).json({ error: "Invalid chama ID format" });
+    }
+
+    // Check if user is the secretary
+    const membership = await prisma.membership.findUnique({
+      where: {
+        userId_chamaId: {
+          userId,
+          chamaId,
+        },
+      },
+    });
+
+    if (!membership) {
+      console.log("❌ APPROVE CHAMA DELETION - User is not a member");
+      return res.status(404).json({ error: "You are not a member of this chama" });
+    }
+
+    if (membership.role !== "SECRETARY") {
+      console.log("❌ APPROVE CHAMA DELETION - User is not the secretary");
+      return res.status(403).json({ error: "Only the secretary can approve chama deletion" });
+    }
+
+    // Check if deletion request exists
+    const deletionRequest = await prisma.chamaDeletionRequest.findUnique({
+      where: { chamaId },
+    });
+
+    if (!deletionRequest) {
+      console.log("❌ APPROVE CHAMA DELETION - No deletion request found");
+      return res.status(404).json({ error: "No deletion request found for this chama" });
+    }
+
+    if (deletionRequest.status !== "PENDING") {
+      return res.status(400).json({ 
+        error: `This request is already ${deletionRequest.status.toLowerCase()}` 
+      });
+    }
+
+    // Update deletion request
+    const updatedRequest = await prisma.chamaDeletionRequest.update({
+      where: { chamaId },
+      data: {
+        status: "APPROVED",
+        secretaryApproved: true,
+        secretaryApprovedAt: new Date(),
+        approvedBy: userId,
+        approvedAt: new Date(),
+      },
+    });
+
+    console.log("✅ APPROVE CHAMA DELETION - Deletion approved:", updatedRequest.id);
+
+    // Log the action
+    await prisma.auditLog.create({
+      data: {
+        chamaId,
+        userId,
+        action: "APPROVE_DELETE",
+        entity: "CHAMA",
+        entityId: chamaId,
+        newValues: { status: "APPROVED", approvedBy: userId },
+        createdAt: new Date(),
+      },
+    });
+
+    res.json({
+      message: "Chama deletion approved. The chama is ready for deletion.",
+      request: updatedRequest,
+    });
+  } catch (error) {
+    console.error("❌ APPROVE CHAMA DELETION - Error:", error);
+    res.status(500).json({ error: "Failed to approve chama deletion" });
+  }
+};
+
+// ============================================
+// REJECT CHAMA DELETION - Secretary rejects
+// ============================================
+export const rejectChamaDeletion = async (req: AuthRequest, res: Response) => {
+  try {
+    const { chamaId } = req.params;
+    const { reason } = req.body;
+    const userId = req.user?.id;
+
+    console.log("❌ REJECT CHAMA DELETION - ChamaId:", chamaId, "UserId:", userId);
+
+    if (!userId) {
+      console.log("❌ REJECT CHAMA DELETION - No userId found");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (Array.isArray(chamaId)) {
+      return res.status(400).json({ error: "Invalid chama ID format" });
+    }
+
+    // Check if user is the secretary
+    const membership = await prisma.membership.findUnique({
+      where: {
+        userId_chamaId: {
+          userId,
+          chamaId,
+        },
+      },
+    });
+
+    if (!membership) {
+      console.log("❌ REJECT CHAMA DELETION - User is not a member");
+      return res.status(404).json({ error: "You are not a member of this chama" });
+    }
+
+    if (membership.role !== "SECRETARY") {
+      console.log("❌ REJECT CHAMA DELETION - User is not the secretary");
+      return res.status(403).json({ error: "Only the secretary can reject chama deletion" });
+    }
+
+    // Check if deletion request exists
+    const deletionRequest = await prisma.chamaDeletionRequest.findUnique({
+      where: { chamaId },
+    });
+
+    if (!deletionRequest) {
+      console.log("❌ REJECT CHAMA DELETION - No deletion request found");
+      return res.status(404).json({ error: "No deletion request found for this chama" });
+    }
+
+    if (deletionRequest.status !== "PENDING") {
+      return res.status(400).json({ 
+        error: `This request is already ${deletionRequest.status.toLowerCase()}` 
+      });
+    }
+
+    // Update deletion request
+    const updatedRequest = await prisma.chamaDeletionRequest.update({
+      where: { chamaId },
+      data: {
+        status: "REJECTED",
+        rejectedAt: new Date(),
+        rejectionReason: reason || "No reason provided",
+      },
+    });
+
+    console.log("❌ REJECT CHAMA DELETION - Deletion rejected:", updatedRequest.id);
+
+    // Log the action
+    await prisma.auditLog.create({
+      data: {
+        chamaId,
+        userId,
+        action: "REJECT_DELETE",
+        entity: "CHAMA",
+        entityId: chamaId,
+        newValues: { status: "REJECTED", rejectedBy: userId, reason: reason || "No reason provided" },
+        createdAt: new Date(),
+      },
+    });
+
+    res.json({
+      message: "Chama deletion rejected",
+      request: updatedRequest,
+    });
+  } catch (error) {
+    console.error("❌ REJECT CHAMA DELETION - Error:", error);
+    res.status(500).json({ error: "Failed to reject chama deletion" });
+  }
+};
+
+// ============================================
+// CONFIRM CHAMA DELETION - Execute deletion after both approvals
+// ============================================
+export const confirmChamaDeletion = async (req: AuthRequest, res: Response) => {
+  try {
+    const { chamaId } = req.params;
+    const userId = req.user?.id;
+
+    console.log("🗑️ CONFIRM CHAMA DELETION - ChamaId:", chamaId, "UserId:", userId);
+
+    if (!userId) {
+      console.log("❌ CONFIRM CHAMA DELETION - No userId found");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (Array.isArray(chamaId)) {
+      return res.status(400).json({ error: "Invalid chama ID format" });
+    }
+
+    // Check if user is the owner or secretary
+    const membership = await prisma.membership.findUnique({
+      where: {
+        userId_chamaId: {
+          userId,
+          chamaId,
+        },
+      },
+    });
+
+    if (!membership) {
+      console.log("❌ CONFIRM CHAMA DELETION - User is not a member");
+      return res.status(404).json({ error: "You are not a member of this chama" });
+    }
+
+    if (membership.role !== "OWNER" && membership.role !== "SECRETARY") {
+      console.log("❌ CONFIRM CHAMA DELETION - User is not owner or secretary");
+      return res.status(403).json({ error: "Only owner or secretary can confirm chama deletion" });
+    }
+
+    // Check if deletion request exists and is approved
+    const deletionRequest = await prisma.chamaDeletionRequest.findUnique({
+      where: { chamaId },
+    });
+
+    if (!deletionRequest) {
+      console.log("❌ CONFIRM CHAMA DELETION - No deletion request found");
+      return res.status(404).json({ error: "No deletion request found for this chama" });
+    }
+
+    if (deletionRequest.status !== "APPROVED") {
+      return res.status(400).json({ 
+        error: "Chama deletion has not been approved yet. Both owner and secretary must approve." 
+      });
+    }
+
+    // Delete all related data in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Delete all memberships
+      await tx.membership.deleteMany({
+        where: { chamaId },
+      });
+
+      // Delete all contributions
+      await tx.contribution.deleteMany({
+        where: { chamaId },
+      });
+
+      // Delete all loans and their repayments
+      const loans = await tx.loan.findMany({
+        where: { chamaId },
+        select: { id: true },
+      });
+      
+      for (const loan of loans) {
+        await tx.loanRepayment.deleteMany({
+          where: { loanId: loan.id },
+        });
+      }
+      
+      await tx.loan.deleteMany({
+        where: { chamaId },
+      });
+
+      // Delete all meetings
+      await tx.meeting.deleteMany({
+        where: { chamaId },
+      });
+
+      // Delete audit logs
+      await tx.auditLog.deleteMany({
+        where: { chamaId },
+      });
+
+      // Delete deletion request
+      await tx.chamaDeletionRequest.delete({
+        where: { chamaId },
+      });
+
+      // Finally, delete the chama
+      await tx.chama.delete({
+        where: { id: chamaId },
+      });
+    });
+
+    console.log("✅ CONFIRM CHAMA DELETION - Chama deleted successfully");
+
+    res.json({
+      message: "Chama deleted successfully",
+    });
+  } catch (error) {
+    console.error("❌ CONFIRM CHAMA DELETION - Error:", error);
+    res.status(500).json({ error: "Failed to delete chama" });
+  }
+};
+
+// ============================================
+// GET DELETION REQUEST STATUS
+// ============================================
+export const getDeletionRequestStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const { chamaId } = req.params;
+    const userId = req.user?.id;
+
+    console.log("📋 GET DELETION REQUEST STATUS - ChamaId:", chamaId);
+
+    if (!userId) {
+      console.log("❌ GET DELETION REQUEST STATUS - No userId found");
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (Array.isArray(chamaId)) {
+      return res.status(400).json({ error: "Invalid chama ID format" });
+    }
+
+    // Check if user is a member
+    const membership = await prisma.membership.findUnique({
+      where: {
+        userId_chamaId: {
+          userId,
+          chamaId,
+        },
+      },
+    });
+
+    if (!membership) {
+      console.log("❌ GET DELETION REQUEST STATUS - User is not a member");
+      return res.status(404).json({ error: "You are not a member of this chama" });
+    }
+
+    const deletionRequest = await prisma.chamaDeletionRequest.findUnique({
+      where: { chamaId },
+    });
+
+    if (!deletionRequest) {
+      return res.json({ 
+        exists: false,
+        message: "No deletion request found for this chama" 
+      });
+    }
+
+    res.json({
+      exists: true,
+      request: deletionRequest,
+    });
+  } catch (error) {
+    console.error("❌ GET DELETION REQUEST STATUS - Error:", error);
+    res.status(500).json({ error: "Failed to get deletion request status" });
   }
 };

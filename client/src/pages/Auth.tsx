@@ -19,8 +19,15 @@ import {
 
 export function Auth() {
   const navigate = useNavigate();
-  const { setUser, setAuthenticated, isAuthenticated } = useAuthStore();
+  const { 
+    setUser, 
+    setAuthenticated, 
+    isAuthenticated, 
+    isLoading: authLoading,
+    isLoggingOut 
+  } = useAuthStore();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // Login state
   const [loginData, setLoginData] = useState({ email: "", password: "" });
@@ -39,6 +46,32 @@ export function Auth() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Only redirect if authenticated AND not in the process of logging out
+  useEffect(() => {
+    // Don't redirect if we're in the logout process
+    if (isLoggingOut) return;
+    
+    if (isAuthenticated) {
+      const { userChamas } = useChamaStore.getState();
+      
+      // Small delay to ensure store is properly hydrated
+      setTimeout(() => {
+        if (userChamas.length === 1) {
+          navigate('/dashboard');
+        } else if (userChamas.length > 1) {
+          navigate('/my-chamas');
+        } else {
+          navigate('/dashboard');
+        }
+      }, 100);
+    }
+  }, [isAuthenticated, navigate, isLoggingOut]);
+
+  // Set initial loading to false after first render
+  useEffect(() => {
+    setIsInitialLoading(false);
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -46,10 +79,7 @@ export function Auth() {
 
     try {
       const response = await api.post("/auth/login", loginData);
-      console.log(
-        "🔐 FULL LOGIN RESPONSE:",
-        JSON.stringify(response.data, null, 2),
-      );
+      console.log("🔐 FULL LOGIN RESPONSE:", JSON.stringify(response.data, null, 2));
 
       const { user, chamas } = response.data;
 
@@ -58,9 +88,7 @@ export function Auth() {
 
       if (chamas && chamas.length > 0) {
         chamas.forEach((chama: any, i: number) => {
-          console.log(
-            `  Chama ${i + 1}: ${chama.name} - Members: ${chama.memberCount}`,
-          );
+          console.log(`  Chama ${i + 1}: ${chama.name} - Members: ${chama.memberCount}`);
         });
       }
 
@@ -77,25 +105,20 @@ export function Auth() {
         currentChama: storeState.currentChama,
       });
 
-      // Decision logic
+      // Decision logic - now handled by useEffect
+      // But we still need to handle the case where user has no chamas
       if (!chamas || chamas.length === 0) {
-        console.log("❌ No chamas, redirecting to dashboard");
         navigate("/dashboard");
         return;
       }
 
       if (chamas.length === 1) {
-        console.log("✅ Single chama, auto-selecting and going to dashboard");
         useChamaStore.getState().setCurrentChama(chamas[0]);
         navigate("/dashboard");
         return;
       }
 
       // Multiple chamas
-      console.log(
-        `🎯 ${chamas.length} chamas found, redirecting to /my-chamas`,
-      );
-      console.log("📍 Navigating to /my-chamas now...");
       navigate("/my-chamas");
     } catch (err: any) {
       console.error("Login error:", err);
@@ -104,6 +127,7 @@ export function Auth() {
       setLoading(false);
     }
   };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -122,6 +146,16 @@ export function Auth() {
     }
   };
 
+  // Don't show any loading state during logout or initial render
+  // Only show loading on initial page load before the store is hydrated
+  if (authLoading && isInitialLoading && !isLoggingOut) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50 flex">
       {/* Left Side - Brand Section */}
@@ -130,9 +164,7 @@ export function Auth() {
         <div className="relative z-10 flex flex-col justify-center px-12 text-white">
           <div className="mb-8">
             <h1 className="text-5xl font-bold mb-4">Changa.com</h1>
-            <p className="text-xl text-purple-100">
-              Digital Chama Management System
-            </p>
+            <p className="text-xl text-purple-100">Digital Chama Management System</p>
           </div>
 
           <div className="space-y-6 mt-12">
@@ -142,9 +174,7 @@ export function Auth() {
               </div>
               <div>
                 <p className="font-semibold">Multi-Chama Support</p>
-                <p className="text-sm text-purple-200">
-                  Manage multiple savings groups
-                </p>
+                <p className="text-sm text-purple-200">Manage multiple savings groups</p>
               </div>
             </div>
 
@@ -154,9 +184,7 @@ export function Auth() {
               </div>
               <div>
                 <p className="font-semibold">Loan Management</p>
-                <p className="text-sm text-purple-200">
-                  Track loans and repayments
-                </p>
+                <p className="text-sm text-purple-200">Track loans and repayments</p>
               </div>
             </div>
 
@@ -166,9 +194,7 @@ export function Auth() {
               </div>
               <div>
                 <p className="font-semibold">Member Tracking</p>
-                <p className="text-sm text-purple-200">
-                  Real-time contribution tracking
-                </p>
+                <p className="text-sm text-purple-200">Real-time contribution tracking</p>
               </div>
             </div>
 
@@ -178,17 +204,13 @@ export function Auth() {
               </div>
               <div>
                 <p className="font-semibold">Meeting Management</p>
-                <p className="text-sm text-purple-200">
-                  Schedule and track attendance
-                </p>
+                <p className="text-sm text-purple-200">Schedule and track attendance</p>
               </div>
             </div>
           </div>
 
           <div className="mt-12 pt-8 border-t border-white/20">
-            <p className="text-sm text-purple-200">
-              Join thousands of chamas managing their finances digitally
-            </p>
+            <p className="text-sm text-purple-200">Join thousands of chamas managing their finances digitally</p>
           </div>
         </div>
 

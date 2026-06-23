@@ -49,6 +49,40 @@ model Chama {
   savedReports  SavedReport[]   // ✅ Added this
 }
 
+// ============================================
+// CHAMA DELETION REQUEST - Dual approval required
+// ============================================
+model ChamaDeletionRequest {
+  id          String   @id @default(cuid())
+  chamaId     String   @unique
+  requestedBy String   // Owner who requested
+  requestedAt DateTime @default(now())
+  
+  // Owner approval (auto-approved when requested by owner)
+  ownerApproved   Boolean  @default(true)
+  ownerApprovedAt DateTime?
+  
+  // Secretary approval
+  secretaryApproved   Boolean  @default(false)
+  secretaryApprovedAt DateTime?
+  
+  // Final approval details
+  approvedBy   String?
+  approvedAt   DateTime?
+  
+  // Rejection details
+  rejectedAt     DateTime?
+  rejectionReason String?
+  
+  // Status: PENDING, APPROVED, REJECTED
+  status    String @default("PENDING")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  chama Chama @relation(fields: [chamaId], references: [id], onDelete: Cascade)
+}
+
 model Membership {
   id        String   @id @default(cuid())
   userId    String
