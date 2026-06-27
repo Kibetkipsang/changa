@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import { useChamaStore } from "../stores/chamaStore";
@@ -21,10 +21,10 @@ import {
   DollarSign,
   ChevronRight,
   Home,
-  Info,
   Layers,
   Settings,
   BarChart3,
+  ChevronLeft,
 } from "lucide-react";
 
 interface LayoutProps {
@@ -37,6 +37,10 @@ const navigation = [
   { name: "Loans", href: "/loans", icon: HandCoins },
   { name: "Meetings", href: "/meetings", icon: Calendar },
   { name: "Members", href: "/members", icon: Users },
+];
+
+// Bottom navigation items (Settings & Analytics)
+const bottomNav = [
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -61,8 +65,25 @@ export function Layout({ children }: LayoutProps) {
   const { logout, user } = useAuthStore();
   const { currentChama, userChamas, setCurrentChama } = useChamaStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [chamaDropdownOpen, setChamaDropdownOpen] = useState(false);
   const [infoDropdownOpen, setInfoDropdownOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    const handleResize = () => {
+      const desktop = window.innerWidth >= 1024;
+      setIsDesktop(desktop);
+      if (!desktop) {
+        setIsCollapsed(false);
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -72,6 +93,12 @@ export function Layout({ children }: LayoutProps) {
   const handleChamaSelect = (chama: any) => {
     setCurrentChama(chama);
     setChamaDropdownOpen(false);
+  };
+
+  const toggleCollapse = () => {
+    if (isDesktop) {
+      setIsCollapsed(!isCollapsed);
+    }
   };
 
   // Get current period (month/year)
@@ -117,73 +144,206 @@ export function Layout({ children }: LayoutProps) {
     return location.pathname === href;
   };
 
+  // FIX: Determine sidebar width - on mobile, sidebar is completely hidden
+  const getSidebarWidth = () => {
+    if (!isDesktop) {
+      return sidebarOpen ? 'w-64' : 'w-0 overflow-hidden';
+    }
+    return isCollapsed ? 'w-20' : 'w-64';
+  };
+
+  // FIX: Main content margin - no margin on mobile
+  const getMainMargin = () => {
+    if (!isDesktop) {
+      return 'ml-0';
+    }
+    return isCollapsed ? 'ml-20' : 'ml-64';
+  };
+
+  // Handle tooltip positioning
+  const handleMouseEnter = (key: string, e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isCollapsed || !isDesktop) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      top: rect.top + rect.height / 2,
+      left: rect.right + 8,
+    });
+    setHoveredItem(key);
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredItem(null);
+  };
+
+  // Render tooltip using fixed positioning
+  const renderTooltip = (label: string) => {
+    if (!hoveredItem || hoveredItem !== label) return null;
+    if (!isCollapsed || !isDesktop) return null;
+    
+    return (
+      <div
+        className="fixed px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-md whitespace-nowrap z-[100] shadow-lg pointer-events-none transition-opacity duration-200"
+        style={{
+          top: tooltipPosition.top - 16,
+          left: tooltipPosition.left,
+          transform: 'translateY(-50%)',
+        }}
+      >
+        {label}
+        <div
+          className="absolute left-0 top-1/2 -translate-y-1/2 -ml-1.5 border-r-4 border-r-gray-900 border-t-4 border-t-transparent border-b-4 border-b-transparent"
+        />
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
+      {/* Mobile sidebar overlay - only shows when sidebar is open */}
+      {sidebarOpen && !isDesktop && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-20 transition-opacity duration-300"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - completely hidden on mobile when closed */}
       <aside
-        className={`fixed top-0 left-0 h-full bg-white border-r z-30 transition-transform duration-300 lg:translate-x-0 lg:w-64 ${
-          sidebarOpen ? "translate-x-0 w-64" : "-translate-x-full"
-        }`}
+        className={`fixed top-0 left-0 h-full bg-white border-r z-30 transition-all duration-300 flex flex-col ${
+          getSidebarWidth()
+        } ${!isDesktop && !sidebarOpen ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}
       >
-        <div className="flex items-center justify-between p-4 border-b">
-          <Link to="/dashboard" className="text-xl font-bold text-purple-700">
+        {/* Logo and collapse button */}
+        <div className="flex items-center justify-between p-4 border-b min-h-[64px] flex-shrink-0">
+          <Link 
+            to="/dashboard" 
+            className={`text-xl font-bold text-purple-700 whitespace-nowrap overflow-hidden transition-all duration-300 ${
+              isCollapsed && isDesktop ? 'w-0 opacity-0' : 'w-auto opacity-100'
+            }`}
+          >
             Changa.com
           </Link>
+          {isDesktop && (
+            <button
+              onClick={toggleCollapse}
+              className="p-1 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0"
+            >
+              {isCollapsed ? (
+                <ChevronRight className="w-5 h-5 text-gray-500" />
+              ) : (
+                <ChevronLeft className="w-5 h-5 text-gray-500" />
+              )}
+            </button>
+          )}
           <button
             onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-1 rounded-lg hover:bg-gray-100"
+            className="lg:hidden p-1 rounded-lg hover:bg-gray-100 flex-shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <nav className="p-4 space-y-1">
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navigation.map((item) => {
             const isActive = isActiveRoute(item.href);
             return (
-              <Link
+              <div
                 key={item.name}
-                to={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                  isActive
-                    ? "bg-purple-50 text-purple-700"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
+                onMouseEnter={(e) => handleMouseEnter(item.name, e)}
+                onMouseLeave={handleMouseLeave}
+                className="relative"
               >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.name}</span>
-              </Link>
+                <Link
+                  to={item.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    isActive
+                      ? "bg-purple-50 text-purple-700"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <span className={`font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                    isCollapsed && isDesktop ? 'w-0 opacity-0' : 'w-auto opacity-100'
+                  }`}>
+                    {item.name}
+                  </span>
+                </Link>
+              </div>
             );
           })}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t">
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+        {/* Bottom section */}
+        <div className="p-4 border-t space-y-1 flex-shrink-0">
+          {bottomNav.map((item) => {
+            const isActive = isActiveRoute(item.href);
+            return (
+              <div
+                key={item.name}
+                onMouseEnter={(e) => handleMouseEnter(item.name, e)}
+                onMouseLeave={handleMouseLeave}
+                className="relative"
+              >
+                <Link
+                  to={item.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    isActive
+                      ? "bg-purple-50 text-purple-700"
+                      : "text-gray-700 hover:bg-gray-100"
+                  }`}
+                  onClick={() => setSidebarOpen(false)}
+                >
+                  <item.icon className="w-5 h-5 flex-shrink-0" />
+                  <span className={`font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                    isCollapsed && isDesktop ? 'w-0 opacity-0' : 'w-auto opacity-100'
+                  }`}>
+                    {item.name}
+                  </span>
+                </Link>
+              </div>
+            );
+          })}
+          <div
+            onMouseEnter={(e) => handleMouseEnter('Logout', e)}
+            onMouseLeave={handleMouseLeave}
+            className="relative"
           >
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">Logout</span>
-          </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 px-3 py-2 w-full rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="w-5 h-5 flex-shrink-0" />
+              <span className={`font-medium whitespace-nowrap overflow-hidden transition-all duration-300 ${
+                isCollapsed && isDesktop ? 'w-0 opacity-0' : 'w-auto opacity-100'
+              }`}>
+                Logout
+              </span>
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="lg:ml-64">
+      {/* Tooltips rendered with fixed positioning */}
+      {renderTooltip('Dashboard')}
+      {renderTooltip('Contributions')}
+      {renderTooltip('Loans')}
+      {renderTooltip('Meetings')}
+      {renderTooltip('Members')}
+      {renderTooltip('Analytics')}
+      {renderTooltip('Settings')}
+      {renderTooltip('Logout')}
+
+      {/* Main content - full width on mobile */}
+      <div className={`${getMainMargin()} transition-all duration-300`}>
         {/* Top bar */}
         <header className="bg-white border-b sticky top-0 z-40">
           <div className="px-3 sm:px-4 py-2">
-            {/* First row: Menu, Chama switcher, Info dropdown, User */}
+            {/* First row */}
             <div className="flex items-center justify-between gap-1 sm:gap-2">
               <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
+                {/* Hamburger menu - only visible on mobile */}
                 <button
                   onClick={() => setSidebarOpen(true)}
                   className="lg:hidden p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 flex-shrink-0"
@@ -191,7 +351,7 @@ export function Layout({ children }: LayoutProps) {
                   <Menu className="w-5 h-5" />
                 </button>
 
-                {/* Chama switcher */}
+                {/* Chama switcher - visible on all screens */}
                 {userChamas.length > 0 && (
                   <div className="relative flex items-center gap-1 flex-1 min-w-0">
                     <button
@@ -213,7 +373,6 @@ export function Layout({ children }: LayoutProps) {
                         />
                         <div className="absolute left-0 top-full mt-2 w-64 sm:w-72 bg-white rounded-lg shadow-lg border z-20">
                           <div className="p-2 max-h-80 overflow-y-auto">
-                            {/* Chama list */}
                             <div className="text-[10px] text-gray-400 uppercase tracking-wider px-3 pt-1 pb-1.5">
                               Your Chamas
                             </div>
@@ -244,10 +403,7 @@ export function Layout({ children }: LayoutProps) {
                                 </div>
                               </button>
                             ))}
-                            
                             <hr className="my-2" />
-                            
-                            {/* My Chamas button */}
                             <Link
                               to="/my-chamas"
                               className="flex items-center gap-2 px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors text-sm font-medium"
@@ -256,10 +412,7 @@ export function Layout({ children }: LayoutProps) {
                               <Layers className="w-4 h-4" />
                               <span>View All My Chamas</span>
                             </Link>
-                            
                             <hr className="my-2" />
-                            
-                            {/* Create and Join buttons */}
                             <Link
                               to="/create-chama"
                               className="flex items-center gap-2 px-3 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors text-sm"
@@ -284,7 +437,7 @@ export function Layout({ children }: LayoutProps) {
                 )}
               </div>
 
-              {/* Info Dropdown - Using "Chama Info" text instead of icon */}
+              {/* Info Dropdown */}
               <div className="relative flex-shrink-0">
                 <button
                   onClick={toggleInfoDropdown}
@@ -305,8 +458,6 @@ export function Layout({ children }: LayoutProps) {
                         <div className="text-[10px] text-gray-400 uppercase tracking-wider px-3 pt-1 pb-0.5">
                           Chama Details
                         </div>
-                        
-                        {/* Period */}
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
                           <div className="w-7 h-7 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <CalendarIcon className="w-3.5 h-3.5 text-purple-600" />
@@ -316,8 +467,6 @@ export function Layout({ children }: LayoutProps) {
                             <p className="text-xs font-medium text-gray-700">{currentPeriod}</p>
                           </div>
                         </div>
-
-                        {/* Frequency */}
                         {currentChama?.frequency && (
                           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
                             <div className="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -329,8 +478,6 @@ export function Layout({ children }: LayoutProps) {
                             </div>
                           </div>
                         )}
-
-                        {/* Contribution Amount */}
                         {currentChama?.contributionAmount !== undefined && currentChama?.contributionAmount !== null && (
                           <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
                             <div className="w-7 h-7 bg-orange-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -342,11 +489,7 @@ export function Layout({ children }: LayoutProps) {
                             </div>
                           </div>
                         )}
-
-                        {/* Divider */}
                         <div className="border-t my-1"></div>
-
-                        {/* Member Count */}
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
                           <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
                             <Users className="w-3.5 h-3.5 text-green-600" />
@@ -376,7 +519,7 @@ export function Layout({ children }: LayoutProps) {
               </div>
             </div>
 
-            {/* Second row: Breadcrumbs */}
+            {/* Breadcrumbs */}
             <div className="mt-1 flex items-center gap-1 text-xs text-gray-500 overflow-x-auto pb-0.5">
               {breadcrumbs.map((crumb, index) => (
                 <div key={crumb.path} className="flex items-center flex-shrink-0">

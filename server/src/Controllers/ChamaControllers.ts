@@ -457,9 +457,12 @@ export const requestChamaDeletion = async (req: AuthRequest, res: Response) => {
         });
       }
       if (existingRequest.status === "REJECTED") {
-        return res.status(400).json({ 
-          error: "The deletion request was rejected. Please contact the secretary for more information." 
+        // ✅ ALLOW NEW REQUEST AFTER REJECTION - Delete the old rejected request
+        console.log("🔄 REQUEST CHAMA DELETION - Previous request was rejected. Deleting and creating new request.");
+        await prisma.chamaDeletionRequest.delete({
+          where: { chamaId },
         });
+        // Continue to create a new request below
       }
     }
 
@@ -495,17 +498,21 @@ export const requestChamaDeletion = async (req: AuthRequest, res: Response) => {
     });
 
     // Log the action
-    await prisma.auditLog.create({
-      data: {
-        chamaId,
-        userId,
-        action: "REQUEST_DELETE",
-        entity: "CHAMA",
-        entityId: chamaId,
-        newValues: { status: "PENDING", requestedBy: userId },
-        createdAt: new Date(),
-      },
-    });
+    try {
+      await prisma.auditLog.create({
+        data: {
+          chamaId,
+          userId,
+          action: "REQUEST_DELETE",
+          entity: "CHAMA",
+          entityId: chamaId,
+          newValues: { status: "PENDING", requestedBy: userId },
+          createdAt: new Date(),
+        },
+      });
+    } catch (logError) {
+      console.log("⚠️ Could not create audit log:", logError);
+    }
 
     res.json({
       message: "Deletion request submitted. Waiting for Secretary approval.",

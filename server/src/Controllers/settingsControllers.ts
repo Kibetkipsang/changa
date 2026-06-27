@@ -69,10 +69,10 @@ export const saveSettings = async (req: AuthRequest, res: Response) => {
       return res.status(403).json({ error: "Access denied" });
     }
 
-    // Only Owner or Treasurer can update settings
-    if (membership.role !== "OWNER" && membership.role !== "TREASURER") {
+    // ✅ Allow Secretary to update settings along with Owner and Treasurer
+    if (membership.role !== "OWNER" && membership.role !== "TREASURER" && membership.role !== "SECRETARY") {
       return res.status(403).json({ 
-        error: "Only Owner or Treasurer can update settings" 
+        error: "Only Owner, Treasurer, or Secretary can update settings" 
       });
     }
 
@@ -282,7 +282,6 @@ export const getEffectiveSettings = async (req: AuthRequest, res: Response) => {
     // Build effective settings with business rules
     const effectiveSettings = {
       ...settings,
-      // Business rules
       canMembersInvite: settings.allowMemberInvites && memberCount > 1,
       needsApproval: settings.requireApprovalForJoin,
       contributionDueDate: settings.contributionDay ? 

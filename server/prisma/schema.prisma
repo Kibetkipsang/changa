@@ -44,9 +44,10 @@ model Chama {
   meetings      Meeting[]
   settings      ChamaSettings?
   analytics     ChamaAnalytics?
-  inviteTokens  InviteToken[]   // ✅ Added this
-  notifications Notification[]  // ✅ Added this
-  savedReports  SavedReport[]   // ✅ Added this
+  inviteTokens  InviteToken[]
+  notifications Notification[]
+  savedReports  SavedReport[]
+  deletionRequest ChamaDeletionRequest? // ✅ ADD THIS
 }
 
 // ============================================
