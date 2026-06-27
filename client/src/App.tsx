@@ -14,6 +14,7 @@ import { Meetings } from "./pages/Meetings";
 import { Members } from "./pages/Members"
 import { Analytics } from "./pages/Analytics";
 import { Settings } from "./pages/Settings";
+import { Landing } from "./pages/LandingPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,7 +32,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* Auth route */}
-          <Route path="/" element={<Auth />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/auth" element={<Auth />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/register" element={<Navigate to="/" replace />} />
 
