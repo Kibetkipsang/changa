@@ -15,7 +15,6 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  Plus,
   UserPlus,
   Copy,
   Check,

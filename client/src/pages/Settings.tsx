@@ -4,13 +4,13 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { Layout } from "../components/Layout";
 import { useChamaStore } from "../stores/chamaStore";
-import { useAuthStore } from "../stores/authStore";
+// import { useAuthStore } from "../stores/authStore";
 import { api } from "../lib/api";
 import {
   Loader2,
   Save,
   Settings as SettingsIcon,
-  Users,
+
   DollarSign,
   Calendar,
   Bell,
@@ -22,7 +22,6 @@ import {
   LogOut,
   AlertTriangle,
   X,
-  ArrowLeft,
   Trash2,
   UserCheck,
   XCircle,
@@ -139,7 +138,7 @@ const FREQUENCY_OPTIONS = [
 
 export function Settings() {
   const { currentChama } = useChamaStore();
-  const { user } = useAuthStore();
+  // const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const [settings, setSettings] = useState<ChamaSettings>({
     ...defaultSettings,
@@ -160,7 +159,7 @@ export function Settings() {
   const [isExiting, setIsExiting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletionStatus, setDeletionStatus] = useState<DeletionRequestStatus | null>(null);
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [, setIsCheckingStatus] = useState(false);
 
   // Get user role
   const userRole = currentChama?.role;

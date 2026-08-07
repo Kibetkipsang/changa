@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { prisma } from "../lib/prisma.ts";
+import { prisma } from "../lib/prisma.js";
 import { AuthRequest } from "../types/express.js";
 
 // Record a new contribution (Treasurer/OWNER only)

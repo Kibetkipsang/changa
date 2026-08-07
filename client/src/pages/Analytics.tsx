@@ -6,14 +6,11 @@ import { api } from "../lib/api";
 import { toast } from "sonner";
 import {
   Loader2,
-  TrendingUp,
-  TrendingDown,
   Users,
   DollarSign,
   Calendar,
   HandCoins,
   PieChart,
-  BarChart3,
   LineChart,
   Download,
 } from "lucide-react";

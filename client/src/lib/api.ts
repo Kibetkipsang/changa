@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:5000/changa";
+  import.meta.env.VITE_API_URL || "https://admin.chama.keptwise.com";
 
 
 export const api = axios.create({

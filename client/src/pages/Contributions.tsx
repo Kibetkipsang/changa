@@ -56,7 +56,7 @@ export function Contributions() {
   const currentMonth = format(new Date(), "yyyy-MM");
 
   // Fetch contributions - with proper cache configuration
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["contributions", currentChama?.id, monthFilter, statusFilter],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -220,7 +220,7 @@ export function Contributions() {
   };
 
   const contributions = data?.contributions || [];
-  const summary = data?.summary || {};
+  // const summary = data?.summary || {};
 
   // Filter contributions based on search term (client-side filtering)
   const filteredContributions = contributions.filter((c: Contribution) =>

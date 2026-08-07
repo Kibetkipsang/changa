@@ -1,7 +1,7 @@
 import { Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-import { prisma } from "../lib/prisma.ts";
+import { prisma } from "../lib/prisma.js";
 import { AuthRequest } from "../types/express.js";
 
 const JWT_SECRET = process.env.JWT_SECRET_KEY;
@@ -22,7 +22,6 @@ export const authenticate = async (
 ) => {
   try {
     const token = req.cookies?.token;
-    console.log("Token:", token);
 
     if (!token) {
       return res.status(401).json({

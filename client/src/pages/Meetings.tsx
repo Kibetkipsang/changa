@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, isAfter, isBefore, addMinutes } from "date-fns";
+import { format, isAfter, addMinutes } from "date-fns";
 import { toast } from "sonner";
 import { Layout } from "../components/Layout";
 import { useChamaStore } from "../stores/chamaStore";
@@ -15,10 +15,8 @@ import {
   XCircle,
   Clock,
   Eye,
-  Trash2,
   Edit,
   Loader2,
-  Video,
   AlertCircle,
   X,
   ArrowLeft,
@@ -254,11 +252,11 @@ export function Meetings() {
   };
 
   // Check if meeting has passed
-  const isMeetingPast = (meetingDate: string) => {
-    const now = new Date();
-    const meetingTime = new Date(meetingDate);
-    return isAfter(now, meetingTime);
-  };
+  // const isMeetingPast = (meetingDate: string) => {
+  //   const now = new Date();
+  //   const meetingTime = new Date(meetingDate);
+  //   return isAfter(now, meetingTime);
+  // };
 
   // Calculate attendance percentage correctly
   const calculateAttendancePercentage = (meeting: Meeting) => {
@@ -396,12 +394,12 @@ export function Meetings() {
             </div>
           ) : (
             meetings.map((meeting: Meeting) => {
-              const attendees = meeting.attendanceList 
-                ? getAttendeeNames(meeting.attendanceList)
-                : [];
+              // const attendees = meeting.attendanceList 
+              //   ? getAttendeeNames(meeting.attendanceList)
+              //   : [];
               const attendancePercentage = calculateAttendancePercentage(meeting);
               const canMark = canMarkAttendance(meeting.date);
-              const isPast = isMeetingPast(meeting.date);
+              // const isPast = isMeetingPast(meeting.date);
               
               return (
                 <div

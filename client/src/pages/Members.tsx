@@ -13,7 +13,6 @@ import {
   Mail,
   Phone,
   Calendar,
-  MoreVertical,
   UserCog,
   UserMinus,
   Copy,

@@ -22,7 +22,6 @@ import {
   AlertTriangle,
   ChevronDown,
   Filter,
-  Calendar as CalendarIcon,
   Users,
   User,
   Ban,
@@ -348,7 +347,7 @@ export function Loans() {
   const userRole = currentChama?.role;
   const isOwner = userRole === "OWNER";
   const isTreasurer = userRole === "TREASURER";
-  const isMember = userRole === "MEMBER";
+  // const isMember = userRole === "MEMBER";
   const canApprove = isOwner || isTreasurer;
 
   // Filter loans based on search term
@@ -358,10 +357,10 @@ export function Loans() {
   );
 
   // Check if loan is fully approved (both Owner and Treasurer approved)
-  const isFullyApproved = (loan: Loan) => {
-    return loan.status === "APPROVED" || 
-           (loan.approvedByOwner && loan.approvedByTreasurer);
-  };
+  // const isFullyApproved = (loan: Loan) => {
+  //   return loan.status === "APPROVED" || 
+  //          (loan.approvedByOwner && loan.approvedByTreasurer);
+  // };
 
   // Check if loan is ready for disbursement
   const isReadyForDisbursement = (loan: Loan) => {
@@ -556,7 +555,7 @@ export function Loans() {
                     const isOwnLoan = loan.userId === user?.id;
                     const canCancel = isOwnLoan && loan.status === "PENDING";
                     const canDelete = (loan.status === "REJECTED" || loan.status === "CANCELLED") && isOwner;
-                    const canDisburse = (loan.status === "APPROVED" || (loan.approvedByOwner && loan.approvedByTreasurer)) && isOwner;
+                    // const canDisburse = (loan.status === "APPROVED" || (loan.approvedByOwner && loan.approvedByTreasurer)) && isOwner;
                     
                     return (
                       <tr key={loan.id} className="border-b hover:bg-gray-50 transition-colors">

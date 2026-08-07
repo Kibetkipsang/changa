@@ -1,0 +1,1 @@
+{"version":3,"file":"analyticsRoutes.js","sourceRoot":"","sources":["../../src/routes/analyticsRoutes.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,MAAM,EAAE,MAAM,SAAS,CAAC;AACjC,OAAO,EAAE,YAAY,EAAE,MAAM,wBAAwB,CAAC;AACtD,OAAO,EAAE,YAAY,EAAE,MAAM,uCAAuC,CAAC;AAErE,MAAM,MAAM,GAAG,MAAM,EAAE,CAAC;AAExB,MAAM,CAAC,GAAG,CAAC,WAAW,EAAE,YAAY,EAAE,YAAY,CAAC,CAAC;AAEpD,eAAe,MAAM,CAAC"}
