@@ -16,7 +16,7 @@ export const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle session expiration (401 from server means cookie invalid/expired)
+    // Handle session expiration (401 from server)
     if (error.response?.status === 401) {
       // Clear local storage
       localStorage.removeItem("changa-auth-storage");
