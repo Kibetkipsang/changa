@@ -1,8 +1,10 @@
+import "dotenv/config";
+
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
+
 import chamaRoutes from "./routes/chamaRoutes.ts";
 import authRoutes from "./routes/authRoutes.ts";
 import contributionRoutes from "./routes/contributionRoutes.ts";
@@ -12,7 +14,7 @@ import analyticsRoutes from "./routes/analyticsRoutes.ts";
 import settingsRoutes from "./routes/settingsRoutes.ts";
 import memberRoutes from "./routes/memberRoutes.ts";
 
-dotenv.config();
+
 const app = express();
 
 app.use(
