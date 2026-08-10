@@ -13,7 +13,7 @@ import settingsRoutes from "./routes/settingsRoutes.js";
 import memberRoutes from "./routes/memberRoutes.js";
 const app = express();
 app.use(cors({
-    origin: "*",
+    origin: "https://chama.keptwise.com",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
