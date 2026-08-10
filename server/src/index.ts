@@ -17,7 +17,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://chama.keptwise.com",
+    origin: "https://beta.greysilicon.com",
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
