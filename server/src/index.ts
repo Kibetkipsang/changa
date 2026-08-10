@@ -1,10 +1,8 @@
 import "dotenv/config";
-
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
-
 import chamaRoutes from "./routes/chamaRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
 import contributionRoutes from "./routes/contributionRoutes.js";
